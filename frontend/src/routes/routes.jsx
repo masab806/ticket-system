@@ -6,12 +6,24 @@ import OrganizerPage from "@/pages/Organizer";
 import ResalePage from "@/pages/Resale";
 import TicketsPage from "@/pages/Tickets";
 import VerifyPage from "@/pages/Verify";
+
+import LoginPage from "@/pages/Login";
+import SignupPage from "@/pages/Signup";
+
 import { EventDetail } from "@/components/event/event-detail";
 
 const router = createBrowserRouter([
     {
         path: "/",
         element: <HomePage/>
+    },
+    {
+        path: "/login",
+        element: <LoginPage/>
+    },
+    {
+        path: "/signup",
+        element: <SignupPage/>
     },
     {
         path: '/events',
