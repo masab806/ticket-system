@@ -1,21 +1,34 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { Ticket, Menu, X, Wallet, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/context/AuthContext'
 
 const nav = [
   { href: '/events', label: 'Browse' },
   { href: '/resale', label: 'Resale' },
   { href: '/tickets', label: 'My Tickets' },
   { href: '/history', label: 'Activity' },
-  { href: '/organizer', label: 'Organizer' },
 ]
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false)
   const { pathname } = useLocation()
+  const navigate = useNavigate()
 
+  const { role, logout } = useAuth()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+}
+
+  const navigationItems =
+    role === 'organizer'
+      ? [...nav, { href: '/organizer', label: 'Organizer' }]
+      : nav
+  
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6 lg:px-8">
@@ -27,7 +40,7 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
-          {nav.map((item) => {
+          {navigationItems.map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(item.href + '/')
             return (
@@ -59,6 +72,7 @@ export function SiteHeader() {
             <span className="hidden sm:inline">Connect Wallet</span>
             <span className="sm:hidden">Connect</span>
           </Button>
+          <Button variant="outline" size="sm" onClick={handleLogout} >Logout </Button>
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
@@ -73,7 +87,7 @@ export function SiteHeader() {
       {open && (
         <div className="border-t border-border bg-background md:hidden">
           <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3">
-            {[...nav, { href: '/verify', label: 'Verify Ticket' }].map((item) => (
+            {[...navigationItems, { href: '/verify', label: 'Verify Ticket' }].map((item) => (
               <Link
                 key={item.href}
                 to={item.href}

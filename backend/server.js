@@ -6,7 +6,7 @@ const express = require("express")
 const cors = require("cors")
 const mongoose = require("mongoose")
 
-const verifyToken = require('./middleware/authMiddleware');
+const {verifyToken, requireOrganizer} = require('./middleware/authMiddleware');
 const authRoutes = require('./routes/authRoutes');
 
 
@@ -44,6 +44,13 @@ app.get('/api/dashboard', verifyToken, (req, res) => {
     res.json({ 
         message: "Welcome to your secure dashboard!", 
         user: req.user 
+    });
+});
+// 5. PROTECTED ROUTE: Dashboard (Requires verifyToken middleware + requireOrganizer    )
+app.get('/api/dashboard2', verifyToken, requireOrganizer, (req, res) => {
+    res.json({
+        message: "Welcome to the organizer dashboard!",
+        user: req.user
     });
 });
 
