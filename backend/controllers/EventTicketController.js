@@ -77,4 +77,9 @@ class EventTicketController {
             })
         }
     }
+
 } 
+
+module.exports = {
+    EventTicketController
+}
