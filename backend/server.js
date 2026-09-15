@@ -1,6 +1,7 @@
+const dotenv = require("dotenv")
+dotenv.config()
 const express = require("express")
 const cors = require("cors")
-const dotenv = require("dotenv")
 const EventRouter = require("./routes/EventTicket.route")
 
 const app = express()

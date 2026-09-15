@@ -1,3 +1,4 @@
+require("dotenv").config()
 const {ethers} = require("ethers")
 const {provider, signer} = require("../config/ether")
 
@@ -13,11 +14,11 @@ const EVENT_TICKETS_ABI = [
   "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
 ];
 
-const contractAddress = process.env.CONTRACT_ADDRESS
+const contractAddress = process.env.EVENT_TICKETS_ADDRESS
 
 const contract = new ethers.Contract(contractAddress, EVENT_TICKETS_ABI, signer)
 
-const readOnlyContract = new ethers.Contract(contractAddress, EVENT_TICKETS_ABI, signer)
+const readOnlyContract = new ethers.Contract(contractAddress, EVENT_TICKETS_ABI, provider)
 
 const Currency = {
     PKR: 0,

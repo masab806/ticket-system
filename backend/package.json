@@ -32,5 +32,5 @@
     "mocha": "^11.8.0",
     "typescript": "~6.0.3"
   },
-  "type": "module"
+  "type": "commonjs"
 }
