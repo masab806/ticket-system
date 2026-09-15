@@ -58,4 +58,23 @@ class EventTicketController {
             })
         }
     }
+
+    static async mintTickets(req, res){
+        try {
+            const {eventId} = req.params
+            const {quantity} = req.body
+
+            const tx = await contract.mintTickets(eventId, quantity)
+
+            const receipt = await tx.wait()
+
+            return res.status(200).json({
+                txHash: receipt.hash
+            })
+        } catch (error) {
+            return res.status(500).json({
+                error: error.reason || error.message
+            })
+        }
+    }
 } 
