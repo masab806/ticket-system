@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   LayoutDashboard,
   CalendarPlus,
@@ -31,7 +31,14 @@ const sections = [
 
 export default function OrganizerPage() {
   const [section, setSection] = useState('overview')
+  const [dashboard, setDashboard] = useState(null)
 
+useEffect(() => {
+    fetch('http://localhost:3000/api/organizer/dashboard/68c9a1234567890123456789')
+        .then(res => res.json())
+        .then(data => setDashboard(data))
+        .catch(error => console.error(error))
+}, [])
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
@@ -77,7 +84,7 @@ export default function OrganizerPage() {
 
             {/* Content */}
             <div className="min-w-0">
-              {section === 'overview' && <Overview />}
+              {section === 'overview' && <Overview dashboard={dashboard} />}
               {section === 'events' && <Events />}
               {section === 'attendees' && <Attendees />}
               {section === 'payouts' && <Payouts />}
@@ -90,13 +97,24 @@ export default function OrganizerPage() {
   )
 }
 
-function Overview() {
+function Overview({dashboard}) {
   const kpis = [
-    { label: 'Gross revenue', value: formatUsd(925700), delta: '+18.2%', icon: DollarSign },
-    { label: 'Tickets sold', value: '6,322', delta: '+9.4%', icon: Ticket },
-    { label: 'Avg. ticket price', value: formatUsd(146), delta: '+3.1%', icon: TrendingUp },
-    { label: 'Resale volume', value: formatUsd(84200), delta: '+27.0%', icon: Repeat },
-  ]
+  { label: 'Gross revenue', value: formatUsd(dashboard?.grossRevenue || 0), delta: '+18.2%', icon: DollarSign },
+  { label: 'Tickets sold', value: dashboard?.ticketsSold || 0, delta: '+9.4%', icon: Ticket },
+  { label: 'Avg. ticket price', value: formatUsd(dashboard?.averageTicketPrice || 0), delta: '+3.1%', icon: TrendingUp },
+  { label: 'Resale volume', value: formatUsd(dashboard?.resaleVolume || 0), delta: '+27.0%', icon: Repeat },
+]
+const events = (dashboard?.events || []).map(event => ({
+  id: event._id,
+  title: event.title,
+  status: event.status,
+  image: event.image,
+  date: new Date(event.date).toLocaleDateString(),
+  city: event.city,
+  sold: event.sold,
+  capacity: event.capacity,
+  gross: event.gross,
+}))
 
   return (
     <div className="space-y-6">
@@ -130,16 +148,18 @@ function Overview() {
           </Badge>
         </div>
         <div className="mt-6">
-          <RevenueChart />
-        </div>
+  <RevenueChart data={dashboard?.revenueChart || []} />
+</div>
       </div>
 
       <div className="rounded-2xl border border-border bg-card">
         <div className="flex items-center justify-between p-5">
           <h2 className="font-semibold">Your events</h2>
-          <span className="text-sm text-muted-foreground">{organizerEvents.length} total</span>
+          <span className="text-sm text-muted-foreground">
+  {dashboard?.events?.length || 0} total
+</span>
         </div>
-        <EventTable events={organizerEvents.slice(0, 3)} />
+        <EventTable events={events.slice(0, 3)} />
       </div>
     </div>
   )
