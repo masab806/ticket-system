@@ -23,6 +23,7 @@ const TicketSchema = new mongoose.Schema(
       unique: true,
     },
     mintTxHash: {
+      type: String,
       required: true,
       trim: true,
     },
@@ -61,8 +62,8 @@ const TicketSchema = new mongoose.Schema(
 
 TicketSchema.index({ eventId: 1, status: 1 });
 
-const ticketModel = mongoose.model("Ticket", TicketSchema)
+const Ticket = mongoose.model("Ticket", TicketSchema)
 
 module.exports = {
-    ticketModel
+    Ticket
 }
