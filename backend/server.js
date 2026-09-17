@@ -1,3 +1,8 @@
+const dotenv = require("dotenv")
+dotenv.config()
+const express = require("express")
+const cors = require("cors")
+const EventRouter = require("./routes/EventTicket.route")
 const dotenv = require("dotenv");
 // Load environment variables from .env file
 dotenv.config();
@@ -22,6 +27,7 @@ app.use(cors({
     origin: "http://localhost:5173"
 }))
 
+app.use("/api/events", EventRouter)
 
 // Connect to MongoDB Atlas
 mongoose.connect(process.env.MONGO_URI)
