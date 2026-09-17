@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import api from "@/api/api";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,53 +24,45 @@ export default function SignupPage() {
     const [loading, setLoading] = useState(false);
 
     const handleSignup = async (e) => {
-        e.preventDefault();
+    e.preventDefault();
 
-        setError("");
-        setMessage("");
+    setError("");
+    setMessage("");
 
-        // Check passwords before sending request
-        if (password !== confirmPassword) {
-            setError("Passwords do not match.");
-            return;
-        }
+    // Check passwords before sending request
+    if (password !== confirmPassword) {
+        setError("Passwords do not match.");
+        return;
+    }
 
-        setLoading(true);
+    setLoading(true);
 
-        try {
-            const response = await fetch("http://localhost:3000/api/signup", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    email,
-                    password,
-                }),
-            });
+    try {
+        const response = await api.post("/signup", {
+            email,
+            password,
+        });
 
-            const data = await response.json();
+        const data = response.data;
 
-            if (!response.ok) {
-                setError(data.error || "Signup failed.");
-                return;
-            }
+        setMessage(
+            "Account created successfully! Please check your email to verify your account."
+        );
 
-            setMessage(
-                "Account created successfully! Please check your email to verify your account."
-            );
+        // After a short delay, go to login
+        setTimeout(() => {
+            navigate("/login");
+        }, 2000);
 
-            // After a short delay, go to login
-            setTimeout(() => {
-                navigate("/login");
-            }, 2000);
+    } catch (err) {
+        setError(
+            err.response?.data?.error || "Unable to connect to the server."
+        );
+    } finally {
+        setLoading(false);
+    }
+};
 
-        } catch (err) {
-            setError("Unable to connect to the server.");
-        } finally {
-            setLoading(false);
-        }
-    };
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-background px-4">

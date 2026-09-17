@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import api from "@/api/api";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,42 +22,33 @@ export default function LoginPage() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const handleLogin = async (e) => {
-        e.preventDefault();
+        const handleLogin = async (e) => {
+    e.preventDefault();
 
-        setError("");
-        setLoading(true);
+    setError("");
+    setLoading(true);
 
-        try {
-            const response = await fetch("http://localhost:3000/api/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    email,
-                    password,
-                }),
-            });
+    try {
+        const response = await api.post("/login", {
+            email,
+            password,
+        });
 
-            const data = await response.json();
+        const data = response.data;
 
-            if (!response.ok) {
-                setError(data.error || "Login failed.");
-                return;
-            }
+        // Save JWT token
+        login(data.token, data.role);
 
-            // Save JWT token
-           login(data.token, data.role);
-
-            // Login successful
-            navigate("/");
-        } catch (err) {
-            setError("Unable to connect to the server.");
-        } finally {
-            setLoading(false);
-        }
-    };
+        // Login successful
+        navigate("/");
+    } catch (err) {
+        setError(
+            err.response?.data?.error || "Unable to connect to the server."
+        );
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-background px-4">
