@@ -1,86 +1,53 @@
-require("dotenv").config()
-const {ethers} = require("ethers")
-const {provider, signer} = require("../config/ether")
+// controllers/EventTicketController.js
+require("dotenv").config();
+const { ethers } = require("ethers");
+const { provider, signer } = require("../config/ether");
 
 const EVENT_TICKETS_ABI = [
-  "function createEvent(string name, uint256 ticketPrice, uint8 currency, uint256 totalTickets) returns (uint256)",
-  "function mintTickets(uint256 eventId, uint256 quantity)",
-  "function transferTicket(uint256 tokenId, address buyer)",
-  "function useTicket(uint256 tokenId)",
-  "function cancelEvent(uint256 eventId)",
-  "function getEvent(uint256 eventId) view returns (string name, uint256 ticketPrice, uint8 currency, uint256 totalTickets, uint256 mintedTickets, bool active, address organizer)",
-  "function getTicket(uint256 tokenId) view returns (uint256 eventId, uint256 ticketNumber, address ticketOwner, bool used)",
-  "function ownerOf(uint256 tokenId) view returns (address)",
-  "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
+  "function mintTickets(address to, uint256 quantity)",
+  "function getTotalTickets() view returns (uint256)",
 ];
 
-const contractAddress = process.env.EVENT_TICKETS_ADDRESS
+const contractAddress = process.env.EVENT_TICKETS_ADDRESS;
 
-const contract = new ethers.Contract(contractAddress, EVENT_TICKETS_ABI, signer)
-
-const readOnlyContract = new ethers.Contract(contractAddress, EVENT_TICKETS_ABI, provider)
-
-const Currency = {
-    PKR: 0,
-    USD: 1,
+if (!ethers.isAddress(contractAddress)) {
+  throw new Error(
+    `EVENT_TICKETS_ADDRESS is not a valid address: ${JSON.stringify(contractAddress)}`
+  );
 }
 
-const CurrencyNames = Object.keys(Currency)
+const contract = new ethers.Contract(contractAddress, EVENT_TICKETS_ABI, signer);
+const readOnlyContract = new ethers.Contract(contractAddress, EVENT_TICKETS_ABI, provider);
 
 class EventTicketController {
-    static async createEvent(req,res) {
-        try {
-            const {name, ticketPrice, currency, totalTickets} = req.body
+  static async mintTickets(req, res) {
+    try {
+      const { to, quantity } = req.body;
 
-            const currencyCode = Currency[currency]
+      if (!ethers.isAddress(to)) {
+        return res.status(400).json({ error: "Invalid recipient address" });
+      }
+      if (!quantity || quantity <= 0) {
+        return res.status(400).json({ error: "Invalid quantity" });
+      }
 
-            if(currencyCode === undefined) {
-                return res.status(400).json({
-                    error: "Invalid Currency"
-                })
-            }
-            
-            const tx = await contract.createEvent(
-                name,
-                ethers.parseUnits(ticketPrice.toString(), 0),
-                currencyCode,
-                totalTickets
-            )
+      const tx = await contract.mintTickets(to, quantity);
+      const receipt = await tx.wait();
 
-            const receipt = await tx.wait()
-
-            return res.status(201).json({
-                txHash: receipt.hash
-            })
-
-        } catch (error) {
-            return res.status(500).json({
-                error: error.reason || error.message
-            })
-        }
+      return res.status(201).json({ txHash: receipt.hash });
+    } catch (error) {
+      return res.status(500).json({ error: error.reason || error.message });
     }
+  }
 
-    static async mintTickets(req, res){
-        try {
-            const {eventId} = req.params
-            const {quantity} = req.body
-
-            const tx = await contract.mintTickets(eventId, quantity)
-
-            const receipt = await tx.wait()
-
-            return res.status(200).json({
-                txHash: receipt.hash
-            })
-        } catch (error) {
-            return res.status(500).json({
-                error: error.reason || error.message
-            })
-        }
+  static async getTotalTickets(req, res) {
+    try {
+      const total = await readOnlyContract.getTotalTickets();
+      return res.status(200).json({ totalTickets: total.toString() });
+    } catch (error) {
+      return res.status(500).json({ error: error.reason || error.message });
     }
-
-} 
-
-module.exports = {
-    EventTicketController
+  }
 }
+
+module.exports = EventTicketController;
