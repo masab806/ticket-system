@@ -1,13 +1,8 @@
+// models/Ticket.model.js
 const mongoose = require("mongoose");
 
 const TicketSchema = new mongoose.Schema(
   {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
-    },
     eventId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Event",
@@ -15,14 +10,20 @@ const TicketSchema = new mongoose.Schema(
       index: true,
     },
 
-    txHash: {
-      type: String,
-      required: true,
-      trim: true,
-      unique: true, 
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
     },
+
     tokenId: {
       type: String,
+      required: true,
+      unique: true,
+    },
+    mintTxHash: {
+      required: true,
       trim: true,
     },
     walletAddress: {
@@ -34,23 +35,34 @@ const TicketSchema = new mongoose.Schema(
 
     pricePaid: {
       type: Number,
-      required: true,
       min: 0,
     },
     currency: {
       type: String,
       enum: ["PKR", "USD"],
-      required: true,
+    },
+    stripePaymentIntentId: {
+      type: String,
+      trim: true,
+    },
+    soldAt: {
+      type: Date,
     },
 
     status: {
       type: String,
-      enum: ["pending", "confirmed", "failed"],
-      default: "pending",
+      enum: ["available", "sold", "used"],
+      default: "available",
       index: true,
     },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Ticket", TicketSchema);
+TicketSchema.index({ eventId: 1, status: 1 });
+
+const ticketModel = mongoose.model("Ticket", TicketSchema)
+
+module.exports = {
+    ticketModel
+}
