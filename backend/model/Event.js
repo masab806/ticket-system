@@ -85,4 +85,8 @@ EventSchema.methods.isSoldOut = function () {
   return this.mintedTickets >= this.totalTickets;
 };
 
-module.exports = mongoose.model("Event", EventSchema);
+const eventModel = mongoose.model("Event", EventSchema)
+
+module.exports = {
+    eventModel
+}

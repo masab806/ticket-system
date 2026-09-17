@@ -1,4 +1,3 @@
-// models/Ticket.model.js
 const mongoose = require("mongoose");
 
 const TicketSchema = new mongoose.Schema(
@@ -32,7 +31,6 @@ const TicketSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
     },
-
 
     pricePaid: {
       type: Number,
