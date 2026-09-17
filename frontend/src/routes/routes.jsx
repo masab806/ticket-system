@@ -6,12 +6,26 @@ import OrganizerPage from "@/pages/Organizer";
 import ResalePage from "@/pages/Resale";
 import TicketsPage from "@/pages/Tickets";
 import VerifyPage from "@/pages/Verify";
+
+import LoginPage from "@/pages/Login";
+import SignupPage from "@/pages/Signup";
+
+import ProtectedOrganizerRoute from "@/components/ProtectedOrganizerRoute";
+
 import { EventDetail } from "@/components/event/event-detail";
 
 const router = createBrowserRouter([
     {
         path: "/",
         element: <HomePage/>
+    },
+    {
+        path: "/login",
+        element: <LoginPage/>
+    },
+    {
+        path: "/signup",
+        element: <SignupPage/>
     },
     {
         path: '/events',
@@ -23,7 +37,11 @@ const router = createBrowserRouter([
     },
     {
         path: '/organizer',
-        element: <OrganizerPage/>
+        element: (
+        <ProtectedOrganizerRoute>
+            <OrganizerPage />
+        </ProtectedOrganizerRoute>
+    )
     },
     {
         path: '/resale',
