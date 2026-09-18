@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const transporter = require('./emailService');
+const user = require('../models/user');
 
 const signupUser = async (email, password) => {
 
@@ -28,7 +29,7 @@ const signupUser = async (email, password) => {
     await newUser.save();
 
     const verificationLink =
-        `http://localhost:3000/api/verify-email/${verificationToken}`;
+        `http://localhost:3000/api/auth/verify-email/${verificationToken}`;
 
     await transporter.sendMail({
         from: process.env.EMAIL_USER,
@@ -106,8 +107,23 @@ const loginUser = async (email, password) => {
     };
 };
 
+const getUserProfile = async (userId) => {
+    try {
+        const user = await User.findById(userId).select("-password -verificationToken -verificationTokenExpires");
+        
+        if (!user) {
+            return "Invalid Credentials Or Token";
+        }
+
+        return user;
+    } catch (error) {
+        console.log("error: ", error);
+    }
+};
+
 module.exports = {
     signupUser,
     verifyEmailToken,
-    loginUser
+    loginUser,
+    getUserProfile
 };

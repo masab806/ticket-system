@@ -1,8 +1,8 @@
 require("dotenv").config();
 const { ethers } = require("ethers");
 const { provider, signer } = require("../config/ether");
-const { Event } = require("../model/Event");
-const { Ticket } = require("../model/Ticket");
+const { Event } = require("../models/Event");
+const { Ticket } = require("../models/Ticket");
 
 const EVENT_TICKETS_ABI = [
   "function mintTickets(address to, uint256 quantity)",
@@ -13,16 +13,16 @@ const EVENT_TICKETS_ABI = [
 const contractAddress = process.env.EVENT_TICKETS_ADDRESS;
 const platformWalletAddress = process.env.PLATFORM_WALLET_ADDRESS;
 
-if (!ethers.isAddress(contractAddress)) {
-  throw new Error(
-    `EVENT_TICKETS_ADDRESS is not a valid address: ${JSON.stringify(contractAddress)}`
-  );
-}
-if (!ethers.isAddress(platformWalletAddress)) {
-  throw new Error(
-    `PLATFORM_WALLET_ADDRESS is not a valid address: ${JSON.stringify(platformWalletAddress)}`
-  );
-}
+// if (!ethers.isAddress(contractAddress)) {
+//   throw new Error(
+//     `EVENT_TICKETS_ADDRESS is not a valid address: ${JSON.stringify(contractAddress)}`
+//   );
+// }
+// if (!ethers.isAddress(platformWalletAddress)) {
+//   throw new Error(
+//     `PLATFORM_WALLET_ADDRESS is not a valid address: ${JSON.stringify(platformWalletAddress)}`
+//   );
+// }
 
 const contract = new ethers.Contract(contractAddress, EVENT_TICKETS_ABI, signer);
 const readOnlyContract = new ethers.Contract(contractAddress, EVENT_TICKETS_ABI, provider);

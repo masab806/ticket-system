@@ -3,12 +3,6 @@ dotenv.config()
 const express = require("express")
 const cors = require("cors")
 const EventRouter = require("./routes/EventTicket.route")
-const dotenv = require("dotenv");
-// Load environment variables from .env file
-dotenv.config();
-
-const express = require("express")
-const cors = require("cors")
 const mongoose = require("mongoose")
 
 const {verifyToken, requireOrganizer} = require('./middleware/authMiddleware');
@@ -39,7 +33,7 @@ app.get("/api/message", (req, res) => {
 });  
 
 // Auth Routes
-app.use('/api', authRoutes);
+app.use('/api/auth', authRoutes);
 
 
 

@@ -38,7 +38,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-        const response = await api.post("/signup", {
+        const response = await api.post("/auth/signup", {
             email,
             password,
         });
@@ -49,7 +49,6 @@ export default function SignupPage() {
             "Account created successfully! Please check your email to verify your account."
         );
 
-        // After a short delay, go to login
         setTimeout(() => {
             navigate("/login");
         }, 2000);
