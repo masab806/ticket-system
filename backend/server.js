@@ -3,11 +3,6 @@ dotenv.config()
 const express = require("express")
 const cors = require("cors")
 const EventRouter = require("./routes/EventTicket.route")
-const dotenv = require("dotenv");
-dotenv.config();
-
-const express = require("express")
-const cors = require("cors")
 const mongoose = require("mongoose")
 
 const {verifyToken, requireOrganizer} = require('./middleware/authMiddleware');
@@ -43,7 +38,8 @@ app.get("/api/message", (req, res) => {
     res.json({ message: "Hello from Express backend!" });
 });  
 
-app.use('/api', authRoutes);
+// Auth Routes
+app.use('/api/auth', authRoutes);
 
 app.get('/api/dashboard', verifyToken, (req, res) => {
     res.json({ 

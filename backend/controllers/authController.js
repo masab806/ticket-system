@@ -67,8 +67,28 @@ const login = async (req, res) => {
     }
 };
 
+const getProfile = async (req,res)=> {
+    try {
+        const {userId} = req.user
+
+        if(!userId){
+            return res.status(400).json({
+                error: "Invalid User"
+            })
+        }
+
+        const result = await authService.getUserProfile(userId)
+
+        return res.status(200).json(result)
+
+    } catch (error) {
+        console.log("Error: ", error)
+    }
+}
+
 module.exports = {
     signup,
     verifyEmail,
-    login
+    login,
+    getProfile
 };

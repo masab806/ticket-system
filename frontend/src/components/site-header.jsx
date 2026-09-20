@@ -17,18 +17,18 @@ export function SiteHeader() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
 
-  const { role, logout } = useAuth()
+  const { role, logout, user } = useAuth()
 
   const handleLogout = () => {
     logout()
     navigate('/login')
-}
+  }
 
   const navigationItems =
     role === 'organizer'
       ? [...nav, { href: '/organizer', label: 'Organizer' }]
       : nav
-  
+
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6 lg:px-8">
@@ -67,12 +67,12 @@ export function SiteHeader() {
               Verify
             </Button>
           </Link>
-          <Button size="sm" className="gap-1.5">
+          {/* <Button size="sm" className="gap-1.5">
             <Wallet className="size-4" />
             <span className="hidden sm:inline">Connect Wallet</span>
             <span className="sm:hidden">Connect</span>
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleLogout} >Logout </Button>
+          </Button> */}
+          {user ? <Button variant="outline" size="sm" onClick={handleLogout} >Logout </Button> : <Link to="/login"><Button className='cursor-pointer' size='sm'>Login</Button></Link>}
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
