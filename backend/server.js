@@ -46,10 +46,6 @@ app.use("/api/events", EventRouter)
 // ADD — normal payment routes (create-intent etc.), after express.json()
 app.use("/api/payments", paymentRoutes)
 
-// Connect to MongoDB Atlas
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connected successfully'))
-  .catch((err) => console.error('MongoDB connection error:', err))
   
 app.get("/api/message", (req, res) => {
     res.json({ message: "Hello from Express backend!" });
