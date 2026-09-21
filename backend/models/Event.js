@@ -8,6 +8,13 @@ const EventSchema = new mongoose.Schema(
       trim: true,
       maxlength: 200,
     },
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
     description: {
       type: String,
       trim: true,
@@ -59,6 +66,12 @@ const EventSchema = new mongoose.Schema(
       min: 0,
     },
 
+    gross: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     organizer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -84,8 +97,8 @@ EventSchema.methods.isSoldOut = function () {
   return this.mintedTickets >= this.totalTickets;
 };
 
-const Event = mongoose.model("Event", EventSchema)
+const Event = mongoose.model("Event", EventSchema);
 
 module.exports = {
-    Event
-}
+  Event,
+};

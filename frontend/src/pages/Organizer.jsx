@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   LayoutDashboard,
   CalendarPlus,
@@ -14,6 +14,7 @@ import {
   Download,
   MoreHorizontal,
 } from 'lucide-react'
+
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { Button } from '@/components/ui/button'
@@ -31,7 +32,54 @@ const sections = [
 
 export default function OrganizerPage() {
   const [section, setSection] = useState('overview')
+  const [dashboard, setDashboard] = useState(null)
+  const [createEventOpen, setCreateEventOpen] = useState(false)
+  const [eventForm, setEventForm] = useState({
+  title: '',
+  slug: '',
+  date: '',
+  city: '',
+  image: '',
+  capacity: '',
+  status: 'Draft',
+})
 
+useEffect(() => {
+    fetch('http://localhost:3000/api/organizer/dashboard/68c9a1234567890123456789')
+        .then(res => res.json())
+        .then(data => setDashboard(data))
+        .catch(error => console.error(error))
+}, [])
+const handleCreateEvent = async () => {
+  try {
+    const response = await fetch(
+      'http://localhost:3000/api/organizer/events/68c9a1234567890123456789',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...eventForm,
+          capacity: Number(eventForm.capacity),
+        }),
+      }
+    )
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to create event')
+    }
+
+    console.log('Event created:', data)
+
+    setCreateEventOpen(false)
+
+  } catch (error) {
+    console.error('Create event error:', error)
+  }
+}
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
@@ -46,10 +94,13 @@ export default function OrganizerPage() {
                 Metro Sports Group · Verified organizer
               </p>
             </div>
-            <Button className="gap-2 self-start sm:self-auto">
-              <Plus className="size-4" />
-              Create event
-            </Button>
+            <Button
+  className="gap-2 self-start sm:self-auto"
+  onClick={() => setCreateEventOpen(true)}
+>
+  <Plus className="size-4" />
+  Create event
+</Button>
           </div>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-[220px_1fr]">
@@ -77,26 +128,126 @@ export default function OrganizerPage() {
 
             {/* Content */}
             <div className="min-w-0">
-              {section === 'overview' && <Overview />}
-              {section === 'events' && <Events />}
+              {section === 'overview' && <Overview dashboard={dashboard} />}
+              {section === 'events' && <Events dashboard={dashboard} />}
               {section === 'attendees' && <Attendees />}
               {section === 'payouts' && <Payouts />}
             </div>
           </div>
         </div>
       </main>
+      {createEventOpen && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="w-full max-w-lg rounded-2xl bg-card p-6 shadow-xl">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Create Event</h2>
+
+        <button
+          type="button"
+          onClick={() => setCreateEventOpen(false)}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="mt-5 space-y-4">
+        <input
+  className="w-full rounded-lg border p-2"
+  placeholder="Event title"
+  value={eventForm.title}
+  onChange={(e) =>
+    setEventForm({ ...eventForm, title: e.target.value })
+  }
+/>
+
+        <input
+  className="w-full rounded-lg border p-2"
+  placeholder="Slug"
+  value={eventForm.slug}
+  onChange={(e) =>
+    setEventForm({ ...eventForm, slug: e.target.value })
+  }
+/>
+
+    <input
+  type="datetime-local"
+  className="w-full rounded-lg border p-2"
+  value={eventForm.date}
+  onChange={(e) =>
+    setEventForm({ ...eventForm, date: e.target.value })
+  }
+/>
+
+        <input
+  className="w-full rounded-lg border p-2"
+  placeholder="City"
+  value={eventForm.city}
+  onChange={(e) =>
+    setEventForm({ ...eventForm, city: e.target.value })
+  }
+/>
+        <input
+  className="w-full rounded-lg border p-2"
+  placeholder="Image URL"
+  value={eventForm.image}
+  onChange={(e) =>
+    setEventForm({ ...eventForm, image: e.target.value })
+  }
+/>
+        <input
+  type="number"
+  className="w-full rounded-lg border p-2"
+  placeholder="Capacity"
+  value={eventForm.capacity}
+  onChange={(e) =>
+    setEventForm({ ...eventForm, capacity: e.target.value })
+  }
+/>
+        <select
+  className="w-full rounded-lg border p-2"
+  value={eventForm.status}
+  onChange={(e) =>
+    setEventForm({ ...eventForm, status: e.target.value })
+  }
+>
+  <option value="Draft">Draft</option>
+  <option value="On sale">On sale</option>
+</select>
+
+        <Button
+  className="w-full"
+  onClick={handleCreateEvent}
+>
+  Create Event
+</Button>
+      </div>
+    </div>
+  </div>
+)}
       <SiteFooter />
     </div>
   )
 }
 
-function Overview() {
+function Overview({dashboard}) {
   const kpis = [
-    { label: 'Gross revenue', value: formatUsd(925700), delta: '+18.2%', icon: DollarSign },
-    { label: 'Tickets sold', value: '6,322', delta: '+9.4%', icon: Ticket },
-    { label: 'Avg. ticket price', value: formatUsd(146), delta: '+3.1%', icon: TrendingUp },
-    { label: 'Resale volume', value: formatUsd(84200), delta: '+27.0%', icon: Repeat },
-  ]
+  { label: 'Gross revenue', value: formatUsd(dashboard?.grossRevenue || 0), delta: '+18.2%', icon: DollarSign },
+  { label: 'Tickets sold', value: dashboard?.ticketsSold || 0, delta: '+9.4%', icon: Ticket },
+  { label: 'Avg. ticket price', value: formatUsd(dashboard?.averageTicketPrice || 0), delta: '+3.1%', icon: TrendingUp },
+  { label: 'Resale volume', value: formatUsd(dashboard?.resaleVolume || 0), delta: '+27.0%', icon: Repeat },
+]
+const events = (dashboard?.events || []).map(event => ({
+  id: event._id,
+  title: event.title,
+  status: event.status,
+  image: event.image,
+  date: new Date(event.date).toLocaleDateString(),
+  city: event.city,
+  sold: event.sold,
+  capacity: event.capacity,
+  gross: event.gross,
+}))
 
   return (
     <div className="space-y-6">
@@ -130,22 +281,24 @@ function Overview() {
           </Badge>
         </div>
         <div className="mt-6">
-          <RevenueChart />
-        </div>
+  <RevenueChart data={dashboard?.revenueChart || []} />
+</div>
       </div>
 
       <div className="rounded-2xl border border-border bg-card">
         <div className="flex items-center justify-between p-5">
           <h2 className="font-semibold">Your events</h2>
-          <span className="text-sm text-muted-foreground">{organizerEvents.length} total</span>
+          <span className="text-sm text-muted-foreground">
+  {dashboard?.events?.length || 0} total
+</span>
         </div>
-        <EventTable events={organizerEvents.slice(0, 3)} />
+        <EventTable events={events.slice(0, 3)} />
       </div>
     </div>
   )
 }
 
-function Events() {
+function Events({dashboard}) {
   return (
     <div className="rounded-2xl border border-border bg-card">
       <div className="flex items-center justify-between p-5">
@@ -158,7 +311,7 @@ function Events() {
           New
         </Button>
       </div>
-      <EventTable events={organizerEvents} />
+      <EventTable events={dashboard?.events || []} />
     </div>
   )
 }
@@ -176,7 +329,7 @@ function EventTable({ events }) {
       {events.map((e) => {
         const pct = e.capacity ? Math.round((e.sold / e.capacity) * 100) : 0
         return (
-          <div key={e.id} className="flex items-center gap-4 p-4">
+          <div key={e.id || e._id} className="flex items-center gap-4 p-4">
             <div className="relative size-12 shrink-0 overflow-hidden rounded-lg">
               <img
                 src={e.image || '/placeholder.svg'}

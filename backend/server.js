@@ -18,12 +18,24 @@ const app = express()
 app.post("/api/payments/webhook", express.raw({ type: "application/json" }), stripeWebhook);
 
 app.use(express.json())
-app.use(express.urlencoded({extended: true}))
+app.use(express.urlencoded({ extended: true }))
+
 
 app.use(cors({
     origin: "http://localhost:5173"
 }))
 
+app.use("/api/organizer", organizerRoutes)
+app.use("/api/organizer/attendees", attendeeRoutes)
+app.use("/api/organizer/payouts", payoutRoutes)
+
+connectDB()
+
+app.get("/", (req, res) => {
+    res.send("Server Is Running!")
+})
+
+app.listen(3000, () => {
 app.use("/api/events", EventRouter)
 
 // ADD — normal payment routes (create-intent etc.), after express.json()
