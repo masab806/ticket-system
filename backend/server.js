@@ -10,6 +10,7 @@ const authRoutes = require('./routes/authRoutes');
 const organizerRoutes = require("./routes/organizerRoutes")
 const attendeeRoutes = require("./routes/attendeeRoutes")
 const payoutRoutes = require("./routes/payoutRoutes")
+const EventRoutes = require("./routes/EventRoute")
 const connectDB = require("./config/db")
 
 // ADD — payment imports
@@ -32,6 +33,7 @@ app.use(cors({
 app.use("/api/organizer", organizerRoutes)
 app.use("/api/organizer/attendees", attendeeRoutes)
 app.use("/api/organizer/payouts", payoutRoutes)
+app.use("/api/events", EventRoutes)
 
 connectDB()
 
