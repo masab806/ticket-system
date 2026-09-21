@@ -1,9 +1,9 @@
 const Stripe = require("stripe");
-const { Ticket } = require("../models/Ticket.model");
-const { Event } = require("../models/Event.model");
-const { Payment } = require("../models/Payment.model");
+const { Ticket } = require("../models/Ticket");
+const { Event } = require("../models/Event");
+const { Payment } = require("../models/Payment");
 
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY || "123");
 
 const createPaymentIntentForTicket = async ({ ticketId, userId, walletAddress }) => {
   const ticket = await Ticket.findOne({ _id: ticketId, status: "available" });

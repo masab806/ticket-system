@@ -7,9 +7,13 @@ const mongoose = require("mongoose")
 
 const {verifyToken, requireOrganizer} = require('./middleware/authMiddleware');
 const authRoutes = require('./routes/authRoutes');
+const organizerRoutes = require("./routes/organizerRoutes")
+const attendeeRoutes = require("./routes/attendeeRoutes")
+const payoutRoutes = require("./routes/payoutRoutes")
+const connectDB = require("./config/db")
 
 // ADD — payment imports
-const { stripeWebhook } = require("./controllers/payment.controller");
+const { stripeWebhook } = require("./controllers/PaymentController");
 const paymentRoutes = require("./routes/payment.route");
 
 const app = express()
@@ -35,7 +39,6 @@ app.get("/", (req, res) => {
     res.send("Server Is Running!")
 })
 
-app.listen(3000, () => {
 app.use("/api/events", EventRouter)
 
 // ADD — normal payment routes (create-intent etc.), after express.json()
@@ -67,6 +70,6 @@ app.get('/api/dashboard2', verifyToken, requireOrganizer, (req, res) => {
     });
 });
 
-app.listen(3000, ()=> {
-    console.log("Server Is Running!")
+app.listen(3000, (req, res) => {
+    console.log("Server Is Running")
 })
