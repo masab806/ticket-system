@@ -13,26 +13,31 @@ export function AuthProvider({ children }) {
             try {
                 const res = await api.get("/auth/profile", {
                     headers: {
-                        "Authorization": `Bearer ${token}`
+                        Authorization: `Bearer ${token}`
                     }
-                })
+                });
 
-                const responseData = res.data
+                // res.data is already an object, no JSON.parse needed
+                const userData = res.data;
+                console.log("Fetched profile data:", userData);
 
-                console.log(responseData)
-
-                setUser(JSON.stringify(responseData) || "")
+                setUser(userData);
             } catch (error) {
-                console.log("Error: ", error)
+                console.error("Error fetching profile:", error.response?.data || error.message);
             }
-        }
+        };
 
         if (token) {
-            getProfile()
-            console.log("User is: ", user)
+            getProfile();
         }
-    }, [token])
+    }, [token]);
 
+    // Separate useEffect to monitor user state updates
+    useEffect(() => {
+        if (user) {
+            console.log("User state updated:", user);
+        }
+    }, [user]);
 
     const login = (newToken, newRole) => {
         localStorage.setItem("token", newToken);

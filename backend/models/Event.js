@@ -38,7 +38,6 @@ const EventSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-
     ticketPrice: {
       type: Number,
       required: true,
@@ -50,35 +49,27 @@ const EventSchema = new mongoose.Schema(
       enum: ["PKR", "USD"],
       default: "PKR",
     },
-
-    // The contract has no per-event cap — it just mints and counts
-    // globally — so supply tracking is entirely your database's job here.
     totalTickets: {
       type: Number,
       required: true,
       min: 1,
     },
     mintedTickets: {
-      // Increment this yourself each time a mint for this event succeeds
-      // (e.g. right after you insert the Ticket documents).
       type: Number,
       default: 0,
       min: 0,
     },
-
     gross: {
       type: Number,
       default: 0,
       min: 0,
     },
-
     organizer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
       index: true,
     },
-
     status: {
       type: String,
       enum: ["draft", "published", "cancelled", "completed"],
@@ -99,6 +90,4 @@ EventSchema.methods.isSoldOut = function () {
 
 const Event = mongoose.model("Event", EventSchema);
 
-module.exports = {
-  Event,
-};
+module.exports = { Event };
