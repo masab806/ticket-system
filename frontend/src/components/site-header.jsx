@@ -36,7 +36,7 @@ export function SiteHeader() {
           <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
             <Ticket className="size-5" />
           </span>
-          <span className="text-lg font-semibold tracking-tight">Tessera</span>
+          <span className="text-lg font-semibold tracking-tight">ChainTix</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
