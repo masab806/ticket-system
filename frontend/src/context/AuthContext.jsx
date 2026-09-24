@@ -13,7 +13,7 @@ export function AuthProvider({ children }) {
             try {
                 const res = await api.get("/auth/profile", {
                     headers: {
-                        Authorization: `Bearer ${token}`
+                        Authorization: `Bearer ${token}`, 
                     }
                 });
 

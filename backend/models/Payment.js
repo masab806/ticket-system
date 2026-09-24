@@ -2,7 +2,9 @@ const mongoose = require("mongoose");
 
 const PaymentSchema = new mongoose.Schema(
   {
-    ticket: { type: mongoose.Schema.Types.ObjectId, ref: "Ticket", required: true, index: true },
+    ticket: { type: mongoose.Schema.Types.ObjectId, ref: "Ticket", default: null, index: true },
+    tickets: [{ type: mongoose.Schema.Types.ObjectId, ref: "Ticket" }],
+    quantity: { type: Number, required: true, min: 1, default: 1 },
     event: { type: mongoose.Schema.Types.ObjectId, ref: "Event", required: true, index: true },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     stripePaymentIntentId: { type: String, required: true, unique: true },

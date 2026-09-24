@@ -1,8 +1,8 @@
 const express = require("express")
 const router = express.Router()
-const {MintBatch, GetTotalTickets} = require("../controllers/EventTicketController")
+const {VerifyTicket, GetTotalTickets} = require("../controllers/EventTicketController")
 
-router.post("/events/:eventId/mint-batch", MintBatch)
+router.post("/tickets/verify", VerifyTicket)
 router.get("/tickets/total", GetTotalTickets)
 
 module.exports = router

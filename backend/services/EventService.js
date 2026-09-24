@@ -2,7 +2,7 @@ const { Event } = require('../models/Event')
 
 // Fetch all events with optional search, category, and sorting filters at DB level
 const getAllEvents = async ({ query, category, sort }) => {
-    const filter = {}
+    const filter = { status: 'published' }
 
     // Filter by search query across title, city, or venue
     if (query) {
@@ -41,6 +41,7 @@ const getAllEvents = async ({ query, category, sort }) => {
             ...e,
             id: e._id?.toString() || e.id,
             title: e.title || e.name || 'Untitled Event',
+            image: e.bannerUrl || '/placeholder.svg',
             priceFrom: e.ticketPrice ?? e.priceFrom ?? 0,
             soldPct: e.totalTickets ? Math.round(((e.mintedTickets || 0) / e.totalTickets) * 100) : 0,
             date: e.startsAt ? new Date(e.startsAt).toISOString() : e.date,
@@ -72,6 +73,7 @@ const getEventById = async (id) => {
         ...e,
         id: e._id?.toString() || e.id,
         title: e.title || e.name || 'Untitled Event',
+        image: e.bannerUrl || '/placeholder.svg',
         priceFrom: e.ticketPrice ?? e.priceFrom ?? 0,
         soldPct: e.totalTickets
             ? Math.round(((e.mintedTickets || 0) / e.totalTickets) * 100)

@@ -6,6 +6,7 @@ import OrganizerPage from "@/pages/Organizer";
 import ResalePage from "@/pages/Resale";
 import TicketsPage from "@/pages/Tickets";
 import VerifyPage from "@/pages/Verify";
+import CheckoutPage from "@/pages/Checkout";
 
 import LoginPage from "@/pages/Login";
 import SignupPage from "@/pages/Signup";
@@ -54,6 +55,10 @@ const router = createBrowserRouter([
     {
         path: '/verify',
         element: <VerifyPage/>
+    },
+    {
+        path: '/checkout',
+        element: <CheckoutPage/>
     },
     {
         path: '/events/:id',

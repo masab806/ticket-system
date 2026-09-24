@@ -1,8 +1,20 @@
-require("dotenv").config()
-const {ethers} = require("ethers")
+const path = require("path")
+require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") })
+const { ethers } = require("ethers")
 
-const provider =  new ethers.JsonRpcProvider(process.env.RPC_URL)
-const signer = new ethers.Wallet(process.env.ORGANIZER_PRIVATE_KEY, provider)
+const rpcUrl = process.env.RPC_URL
+const privateKey = process.env.ORGANIZER_PRIVATE_KEY
+
+if (!rpcUrl) {
+    throw new Error("RPC_URL is not configured")
+}
+
+if (!privateKey) {
+    throw new Error("ORGANIZER_PRIVATE_KEY is not configured")
+}
+
+const provider = new ethers.JsonRpcProvider(rpcUrl)
+const signer = new ethers.Wallet(privateKey, provider)
 
 module.exports = {
     provider,

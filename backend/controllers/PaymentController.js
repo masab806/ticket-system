@@ -2,13 +2,16 @@ const paymentService = require("../services/Paymentservice");
 
 const createPaymentIntent = async (req, res) => {
   try {
-    const { ticketId, walletAddress } = req.body;
-    const userId = req.user.id;
+    const { eventId, ticketId, quantity } = req.body;
+    const userId = req.user.userId;
+    if (!userId) {
+      return res.status(401).json({ message: "Authenticated user ID is missing" });
+    }
 
     const result = await paymentService.createPaymentIntentForTicket({
-      ticketId,
+      ticketId: eventId || ticketId,
       userId,
-      walletAddress,
+      quantity,
     });
 
     res.json(result);
@@ -42,4 +45,7 @@ const stripeWebhook = async (req, res) => {
   }
 };
 
-module.exports = { createPaymentIntent, stripeWebhook };
+module.exports = {
+  createPaymentIntent,
+  stripeWebhook,
+};

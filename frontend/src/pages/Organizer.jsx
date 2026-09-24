@@ -14,7 +14,7 @@ import {
   Download,
   MoreHorizontal,
   Edit,
-  Trash2
+  Trash2,
 } from 'lucide-react'
 
 import {
@@ -29,7 +29,7 @@ import { SiteFooter } from '@/components/site-footer'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { RevenueChart } from '@/components/organizer/revenue-chart'
-import { organizerEvents, attendees, formatUsd } from '@/lib/mock-data'
+import { attendees, formatUsd } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import api from '@/api/api'
@@ -117,7 +117,9 @@ export default function OrganizerPage() {
         ticketPrice: Number(eventForm.ticketPrice) || 0,
         category: eventForm.category,
         description: eventForm.description,
-        status: eventForm.status,
+        status: eventForm.status === 'on_sale' ? 'published' : eventForm.status,
+        venue: { city: eventForm.city },
+        bannerUrl: eventForm.image,
       }
 
       const response = await api.post(`/organizer/events/${user._id}`, payload)
@@ -125,6 +127,7 @@ export default function OrganizerPage() {
 
       setCreateEventOpen(false)
       setEventForm(INITIAL_FORM_STATE)
+      await fetchDashboard()
     } catch (error) {
       const message = error.response?.data?.message || 'Failed to create event'
       setErrorMsg(message)
@@ -182,8 +185,8 @@ export default function OrganizerPage() {
 
             {/* Content */}
             <div className="min-w-0">
-              {section === 'overview' && <Overview dashboard={dashboard} />}
-              {section === 'events' && <Events dashboard={dashboard} />}
+              {section === 'overview' && <Overview dashboard={dashboard} onRefresh={fetchDashboard} />}
+              {section === 'events' && <Events dashboard={dashboard} onRefresh={fetchDashboard} />}
               {section === 'attendees' && <Attendees />}
               {section === 'payouts' && <Payouts />}
             </div>
@@ -307,7 +310,7 @@ export default function OrganizerPage() {
                 }
               >
                 <option value="draft">Draft</option>
-                <option value="on_sale">On sale</option>
+                <option value="published">On sale</option>
               </select>
 
               <Button
@@ -326,7 +329,7 @@ export default function OrganizerPage() {
   )
 }
 
-function Overview({ dashboard }) {
+function Overview({ dashboard, onRefresh }) {
   const kpis = [
     { label: 'Gross revenue', value: formatUsd(dashboard?.grossRevenue || 0), delta: '+18.2%', icon: DollarSign },
     { label: 'Tickets sold', value: dashboard?.ticketsSold || 0, delta: '+9.4%', icon: Ticket },
@@ -461,27 +464,28 @@ export function EventRowActions({ event, onRefresh }) {
 
   return (
     <>
-      {/* More Options Dropdown */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label="More options">
-            <MoreHorizontal className="size-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setIsEditing(true)}>
-            <Edit className="mr-2 size-4" />
-            Edit Event
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
-            onClick={() => setIsDeleting(true)}
-          >
-            <Trash2 className="mr-2 size-4" />
-            Delete Event
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label="More options">
+              <MoreHorizontal className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setIsEditing(true)}>
+              <Edit className="mr-2 size-4" />
+              Edit Event
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={() => setIsDeleting(true)}
+            >
+              <Trash2 className="mr-2 size-4" />
+              Delete Event
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       {/* Edit Event Modal */}
       {isEditing && (
@@ -590,6 +594,7 @@ export function EventRowActions({ event, onRefresh }) {
 function EventTable({ events, onRefresh }) {
   const statusVariant = {
     'On sale': 'success',
+    published: 'success',
     'Sold out': 'secondary',
     Draft: 'warning',
     Past: 'secondary',

@@ -7,10 +7,20 @@ import { Features } from '@/components/home/features'
 import { HowItWorks } from '@/components/home/how-it-works'
 import { CtaBand } from '@/components/home/cta'
 import { EventCard } from '@/components/event-card'
-import { events } from '@/lib/mock-data'
+import { useEffect, useState } from 'react'
+import { Loader2 } from 'lucide-react'
+import api from '@/api/api'
 
 export default function HomePage() {
-  const trending = events.filter((e) => e.trending).slice(0, 3)
+  const [events, setEvents] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api.get('/events', { params: { sort: 'trending' } })
+      .then(({ data }) => setEvents(data.slice(0, 3)))
+      .catch((error) => console.error('Failed to load home events:', error))
+      .finally(() => setLoading(false))
+  }, [])
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -34,11 +44,17 @@ export default function HomePage() {
               <ArrowRight className="size-4" />
             </Link>
           </div>
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {trending.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center py-16"><Loader2 className="size-7 animate-spin text-primary" /></div>
+          ) : events.length > 0 ? (
+            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {events.map((event) => <EventCard key={event.id} event={event} />)}
+            </div>
+          ) : (
+            <div className="mt-8 rounded-2xl border border-dashed border-border py-16 text-center text-muted-foreground">
+              No events are available yet.
+            </div>
+          )}
         </section>
 
         <Features />
