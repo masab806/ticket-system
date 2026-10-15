@@ -37,8 +37,8 @@ import api from '@/api/api'
 const sections = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'events', label: 'Events', icon: CalendarPlus },
-  { id: 'attendees', label: 'Attendees', icon: Users },
-  { id: 'payouts', label: 'Payouts', icon: Banknote },
+//   { id: 'attendees', label: 'Attendees', icon: Users },
+//   { id: 'payouts', label: 'Payouts', icon: Banknote },
 ]
 
 const INITIAL_FORM_STATE = {
@@ -67,8 +67,8 @@ export default function OrganizerPage() {
   const sections = [
     { id: 'overview', label: 'Overview', icon: Plus },
     { id: 'events', label: 'Events', icon: Plus },
-    { id: 'attendees', label: 'Attendees', icon: Plus },
-    { id: 'payouts', label: 'Payouts', icon: Plus },
+    // { id: 'attendees', label: 'Attendees', icon: Plus },
+    // { id: 'payouts', label: 'Payouts', icon: Plus },
   ]
 
   const fetchDashboard = useCallback(async () => {

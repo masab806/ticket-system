@@ -72,7 +72,7 @@ export default function SignupPage() {
                     </CardTitle>
 
                     <CardDescription>
-                        Join Tessera today
+                        Join ChainTix today
                     </CardDescription>
                 </CardHeader>
 

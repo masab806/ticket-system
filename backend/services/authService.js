@@ -6,20 +6,36 @@ const transporter = require('./emailService');
 const user = require('../models/user');
 
 const signupUser = async (email, password) => {
+    if (!email || !password) {
+        throw new Error("Email and password are required");
+    }
 
-    const existingUser = await User.findOne({ email });
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+        throw new Error("Please enter a valid email address");
+    }
+    
+    const isStrongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+    const existingUser = await User.findOne({ email : normalizedEmail });
 
     if (existingUser) {
         throw new Error("Email already registered");
     }
 
+    if (!isStrongPassword.test(password)) {
+        throw new Error(
+            "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character."
+        );
+    }
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
     const newUser = new User({
-        email,
+        email : normalizedEmail,
         password: hashedPassword,
         verified: false,
         verificationToken: verificationToken,
@@ -33,7 +49,7 @@ const signupUser = async (email, password) => {
 
     await transporter.sendMail({
         from: process.env.EMAIL_USER,
-        to: email,
+        to: normalizedEmail,
         subject: "Verify Your Email",
         html: `
             <h2>Verify Your Email</h2>
@@ -73,8 +89,11 @@ const verifyEmailToken = async (token) => {
 };
 
 const loginUser = async (email, password) => {
-
-    const user = await User.findOne({ email });
+    if (!email || !password) {
+        throw new Error("Email and password are required");
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email : normalizedEmail});
 
     if (!user) {
         throw new Error("Invalid email or password");
