@@ -16,6 +16,7 @@ const connectDB = require("./config/db")
 // ADD — payment imports
 const { stripeWebhook } = require("./controllers/PaymentController");
 const paymentRoutes = require("./routes/payment.route");
+const ticketRoutes = require("./routes/Ticket.route");
 
 const app = express()
 
@@ -34,6 +35,7 @@ app.use("/api/organizer", organizerRoutes)
 app.use("/api/organizer/attendees", attendeeRoutes)
 app.use("/api/organizer/payouts", payoutRoutes)
 app.use("/api/events", EventRoutes)
+app.use("/api/tickets", ticketRoutes)
 
 connectDB()
 

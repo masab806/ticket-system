@@ -3,6 +3,7 @@ const { Event } = require("../models/Event");
 // Helper function to map DB event documents to frontend expectations
 const formatEventForClient = (event) => {
   const doc = event.toObject ? event.toObject() : event;
+  const venue = typeof doc.venue === "object" && doc.venue !== null ? doc.venue : {};
   
   return {
     ...doc,
@@ -12,8 +13,8 @@ const formatEventForClient = (event) => {
     capacity: doc.capacity ?? doc.totalTickets ?? 0,
     sold: doc.sold ?? doc.mintedTickets ?? 0,
     gross: doc.gross ?? ((doc.mintedTickets || 0) * (doc.ticketPrice || 0)),
-    city: doc.city || "Unspecified",
-    image: doc.image || "",
+    city: doc.city || venue.city || "Unspecified",
+    image: doc.image || doc.bannerUrl || "",
     status: doc.status || "draft",
   };
 };

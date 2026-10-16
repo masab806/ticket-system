@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   CalendarDays,
   MapPin,
@@ -9,13 +9,15 @@ import {
   Tag,
   ShieldCheck,
   Ticket as TicketIcon,
+  Loader2,
 } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { QrCode } from '@/components/qr-code'
-import { myTickets } from '@/lib/mock-data'
+import api from '@/api/api'
+import { useAuth } from '@/context/AuthContext'
 import { cn } from '@/lib/utils'
 
 const tabs = ['Upcoming', 'Listed', 'Past']
@@ -29,6 +31,22 @@ const statusMap = {
 export default function TicketsPage() {
   const [tab, setTab] = useState('Upcoming')
   const [active, setActive] = useState(null)
+  const [myTickets, setMyTickets] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const { token, user } = useAuth()
+
+  useEffect(() => {
+    if (!token) {
+      setLoading(false)
+      return
+    }
+    api.get('/tickets/mine', {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(({ data }) => setMyTickets(data))
+      .catch((err) => setError(err.response?.data?.message || 'Failed to load your tickets.'))
+      .finally(() => setLoading(false))
+  }, [token])
 
   const visible = myTickets.filter((t) => {
     if (tab === 'Upcoming') return t.status === 'Valid'
@@ -44,7 +62,7 @@ export default function TicketsPage() {
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
             <div className="flex items-center gap-2 text-sm font-medium text-primary">
               <TicketIcon className="size-4" />
-              Wallet 0x9f2b…7d4a
+              <span className="truncate">{user?.email || 'Your account'}</span>
             </div>
             <h1 className="mt-2 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
               My tickets
@@ -73,7 +91,16 @@ export default function TicketsPage() {
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          {visible.length > 0 ? (
+          {loading ? (
+            <div className="flex justify-center py-20"><Loader2 className="size-8 animate-spin text-primary" /></div>
+          ) : error ? (
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-6 text-center text-sm text-destructive">{error}</div>
+          ) : !token ? (
+            <div className="rounded-2xl border border-dashed border-border py-20 text-center">
+              <p className="font-medium">Sign in to view your tickets</p>
+              <Link to="/login" className="mt-5 inline-block"><Button>Log in</Button></Link>
+            </div>
+          ) : visible.length > 0 ? (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {visible.map((ticket) => {
                 const s = statusMap[ticket.status]

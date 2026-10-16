@@ -1,7 +1,14 @@
 import { Link } from 'react-router-dom'
 import { CalendarDays, MapPin, TrendingUp, Link2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { formatUsd } from '@/lib/mock-data'
+
+function formatPrice(value, currency = 'USD') {
+  return new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 2,
+  }).format(Number(value) || 0)
+}
 
 export function EventCard({ event }) {
   if (!event) return null
@@ -11,7 +18,7 @@ const eventId = event._id || event.id || event.slug
 
 // Safe string & image extractions
   const title = event?.title || event?.name || 'Untitled Event'
-  const image = event?.image || '/placeholder.svg'
+  const image = event?.image || event?.bannerUrl || '/placeholder.svg'
   const category = event?.category || 'General'
   const chain = event?.chain || 'Ethereum'
   const isTrending = Boolean(event?.trending)
@@ -103,7 +110,7 @@ const eventId = event._id || event.id || event.slug
           <div>
             <p className="text-xs text-muted-foreground">From</p>
             <p className="text-lg font-semibold">
-              {formatUsd ? formatUsd(priceFrom) : `$${priceFrom}`}
+              {formatPrice(priceFrom, event?.currency || 'USD')}
             </p>
           </div>
           <span className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">

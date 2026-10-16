@@ -1,38 +1,51 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
-  ArrowDownLeft,
   ArrowUpRight,
-  Send,
-  Repeat,
-  Wallet,
   ExternalLink,
+  Loader2,
   Receipt,
 } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { Badge } from '@/components/ui/badge'
-import { transactions, formatUsd } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
+import api from '@/api/api'
+import { useAuth } from '@/context/AuthContext'
 
-const filters = ['All', 'Purchase', 'Resale', 'Transfer']
+const filters = ['All', 'Purchase']
 
-const typeIcon = {
-  Purchase: ArrowUpRight,
-  Resale: ArrowDownLeft,
-  Transfer: Send,
-  Payout: Wallet,
+function formatAmount(value, currency = 'USD') {
+  return new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 2,
+  }).format(Number(value) || 0)
 }
 
 export default function HistoryPage() {
   const [filter, setFilter] = useState('All')
+  const [transactions, setTransactions] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const { token } = useAuth()
 
-  const visible = transactions.filter((t) => filter === 'All' || t.type === filter)
-  const spent = transactions
-    .filter((t) => t.direction === 'out')
-    .reduce((s, t) => s + t.amount, 0)
-  const earned = transactions
-    .filter((t) => t.direction === 'in')
-    .reduce((s, t) => s + t.amount, 0)
+  useEffect(() => {
+    if (!token) {
+      setLoading(false)
+      return
+    }
+
+    api.get('/payments/history', {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(({ data }) => setTransactions(data))
+      .catch((err) => setError(err.response?.data?.message || 'Failed to load transaction history.'))
+      .finally(() => setLoading(false))
+  }, [token])
+
+  const visible = transactions.filter((transaction) =>
+    filter === 'All' || transaction.type === filter
+  )
+  const spent = transactions.reduce((sum, transaction) => sum + (transaction.amount || 0), 0)
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -48,93 +61,70 @@ export default function HistoryPage() {
               Transaction history
             </h1>
             <p className="mt-2 text-muted-foreground">
-              Every purchase, resale, and transfer — recorded on-chain and
-              auditable.
+              Your Stripe payments and ticket purchase records.
             </p>
-
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              <Stat label="Total spent" value={formatUsd(spent)} tone="out" />
-              <Stat label="Total earned" value={formatUsd(earned)} tone="in" />
-              <Stat label="Transactions" value={String(transactions.length)} tone="neutral" />
+              <Stat label="Total spent" value={formatAmount(spent)} />
+              <Stat label="Successful payments" value={String(transactions.filter((t) => t.status === 'Confirmed').length)} />
+              <Stat label="Transactions" value={String(transactions.length)} />
             </div>
           </div>
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="mb-5 flex flex-wrap gap-2">
-            {filters.map((f) => (
+            {filters.map((item) => (
               <button
-                key={f}
+                key={item}
                 type="button"
-                onClick={() => setFilter(f)}
+                onClick={() => setFilter(item)}
                 className={cn(
-                  'rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors',
-                  filter === f
+                  'rounded-full border px-3.5 py-1.5 text-sm font-medium',
+                  filter === item
                     ? 'border-primary bg-primary text-primary-foreground'
                     : 'border-border bg-card text-muted-foreground hover:text-foreground',
                 )}
               >
-                {f}
+                {item}
               </button>
             ))}
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            {visible.map((t, i) => {
-              const Icon = typeIcon[t.type]
-              const inbound = t.direction === 'in'
-              return (
-                <div
-                  key={t.id}
-                  className={cn(
-                    'flex items-center gap-4 p-4',
-                    i !== visible.length - 1 && 'border-b border-border',
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'flex size-10 shrink-0 items-center justify-center rounded-full',
-                      inbound ? 'bg-success/15 text-success' : 'bg-accent text-accent-foreground',
-                    )}
-                  >
-                    <Icon className="size-5" />
+          {loading ? (
+            <div className="flex justify-center py-20"><Loader2 className="size-8 animate-spin text-primary" /></div>
+          ) : error ? (
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-6 text-center text-sm text-destructive">{error}</div>
+          ) : !token ? (
+            <div className="rounded-2xl border border-dashed border-border py-20 text-center">Sign in to view your history.</div>
+          ) : visible.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border py-20 text-center text-muted-foreground">No transactions yet.</div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-border bg-card">
+              {visible.map((transaction, index) => (
+                <div key={transaction.id} className={cn('flex items-center gap-4 p-4', index !== visible.length - 1 && 'border-b border-border')}>
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
+                    <ArrowUpRight className="size-5" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="truncate font-medium">{t.event}</p>
-                      <Badge variant={t.status === 'Confirmed' ? 'success' : 'warning'}>
-                        {t.status}
-                      </Badge>
+                      <p className="truncate font-medium">{transaction.event}</p>
+                      <Badge variant={transaction.status === 'Confirmed' ? 'success' : 'warning'}>{transaction.status}</Badge>
                     </div>
-                    <p className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{t.type}</span>
-                      <span>·</span>
-                      <span>{t.date}</span>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Purchase · {new Date(transaction.date).toLocaleString()} · {transaction.quantity} ticket(s)
                     </p>
                   </div>
                   <div className="text-right">
-                    <p
-                      className={cn(
-                        'font-semibold',
-                        inbound ? 'text-success' : 'text-foreground',
-                      )}
-                    >
-                      {t.amount === 0
-                        ? '—'
-                        : `${inbound ? '+' : '-'}${formatUsd(t.amount)}`}
-                    </p>
-                    <a
-                      href="#"
-                      className="mt-0.5 inline-flex items-center gap-1 font-mono text-xs text-muted-foreground hover:text-primary"
-                    >
-                      {t.txHash.slice(0, 10)}…
+                    <p className="font-semibold">-{formatAmount(transaction.amount, transaction.currency)}</p>
+                    <span className="mt-0.5 inline-flex items-center gap-1 font-mono text-xs text-muted-foreground">
+                      {transaction.txHash.slice(0, 12)}…
                       <ExternalLink className="size-3" />
-                    </a>
+                    </span>
                   </div>
                 </div>
-              )
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
       </main>
       <SiteFooter />
@@ -142,18 +132,11 @@ export default function HistoryPage() {
   )
 }
 
-function Stat({ label, value, tone }) {
+function Stat({ label, value }) {
   return (
     <div className="rounded-2xl border border-border bg-background p-5">
       <p className="text-sm text-muted-foreground">{label}</p>
-      <p
-        className={cn(
-          'mt-1 text-2xl font-semibold tracking-tight',
-          tone === 'in' && 'text-success',
-        )}
-      >
-        {value}
-      </p>
+      <p className="mt-1 text-2xl font-semibold tracking-tight">{value}</p>
     </div>
   )
 }

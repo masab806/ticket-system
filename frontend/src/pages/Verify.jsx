@@ -16,30 +16,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-
-const known = {
-  'AURORA-4821-9F2B-7D4A': {
-    status: 'valid',
-    event: 'Aurora Nights — World Tour',
-    tier: 'VIP Front Stage',
-    seat: 'Sec A · Row 2 · Seat 14',
-    owner: '0x9f2b…7d4a',
-    txHash: '0x7a3f…c21e',
-  },
-  'SOLST-0042-9F2B-7D4A': {
-    status: 'used',
-    event: 'Solstice Music Festival',
-    tier: 'Weekend Pass',
-    seat: 'GA · Weekend',
-    owner: '0x9f2b…7d4a',
-    txHash: '0x1def…88ac',
-    usedAt: 'Jul 10, 2026 · 14:32',
-  },
-}
+import api from '@/api/api'
 
 const samples = [
-  { label: 'Valid ticket', token: 'AURORA-4821-9F2B-7D4A' },
-  { label: 'Already used', token: 'SOLST-0042-9F2B-7D4A' },
+  { label: 'Token ID 1', token: '1' },
   { label: 'Counterfeit', token: 'FAKE-0000-0000-0000' },
 ]
 
@@ -54,14 +34,21 @@ export default function VerifyPage() {
   const [state, setState] = useState('idle')
   const [result, setResult] = useState(null)
 
-  const verify = (value) => {
+  const verify = async (value) => {
     setToken(value)
     setState('checking')
     setResult(null)
-    setTimeout(() => {
-      setResult(known[value] ?? { status: 'invalid' })
+    try {
+      const { data } = await api.post('/events/tickets/verify', { token: value.trim() })
+      setResult(data)
+    } catch (error) {
+      setResult({
+        status: 'invalid',
+        reason: error.response?.data?.message || 'Could not verify this ticket.',
+      })
+    } finally {
       setState('done')
-    }, 1600)
+    }
   }
 
   return (
@@ -194,6 +181,7 @@ function ResultCard({ result }) {
             <Badge variant={config.badge}>{result.status.toUpperCase()}</Badge>
           </div>
           <p className="text-sm text-muted-foreground">{config.sub}</p>
+          {result.reason && <p className="mt-1 text-sm text-muted-foreground">{result.reason}</p>}
         </div>
       </div>
 
@@ -204,7 +192,7 @@ function ResultCard({ result }) {
           <Row label="Seat" value={result.seat} />
           <Row label="Current owner" value={result.owner} mono />
           <Row label="Mint tx" value={result.txHash} mono />
-          {result.usedAt && <Row label="Scanned at" value={result.usedAt} />}
+          <Row label="Token ID" value={result.tokenId} mono />
         </dl>
       )}
     </div>
