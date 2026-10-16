@@ -59,7 +59,7 @@ export default function LoginPage() {
                     </CardTitle>
 
                     <CardDescription>
-                        Log in to your Tessera account
+                        Log in to your ChainTix account
                     </CardDescription>
                 </CardHeader>
 

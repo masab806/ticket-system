@@ -43,4 +43,6 @@ contract EventTickets is ERC721, Ownable {
     function getTotalTickets() external view returns (uint256) {
         return nextTokenId - 1;
     }
+
+    
 }
