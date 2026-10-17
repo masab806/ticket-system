@@ -46,7 +46,9 @@ const INITIAL_FORM_STATE = {
   slug: '',
   startsAt: '',
   city: '',
-  image: '',
+  venueName: '',
+  venueAddress: '',
+  thumbnail: null,
   totalTickets: '',
   ticketPrice: '',
   category: '',
@@ -112,17 +114,23 @@ export default function OrganizerPage() {
         slug: eventForm.slug,
         startsAt: parsedDate.toISOString(),
         city: eventForm.city,
-        image: eventForm.image,
         totalTickets: Number(eventForm.totalTickets) || 0,
         ticketPrice: Number(eventForm.ticketPrice) || 0,
         category: eventForm.category,
         description: eventForm.description,
         status: eventForm.status === 'on_sale' ? 'published' : eventForm.status,
-        venue: { city: eventForm.city },
-        bannerUrl: eventForm.image,
       }
 
-      const response = await api.post(`/organizer/events/${user._id}`, payload)
+      const formData = new FormData()
+      Object.entries(payload).forEach(([key, value]) => formData.append(key, value))
+      formData.append('venue', JSON.stringify({
+        name: eventForm.venueName,
+        address: eventForm.venueAddress,
+        city: eventForm.city,
+      }))
+      if (eventForm.thumbnail) formData.append('thumbnail', eventForm.thumbnail)
+
+      const response = await api.post(`/organizer/events/${user._id}`, formData)
       console.log('Event created:', response.data)
 
       setCreateEventOpen(false)
@@ -254,6 +262,24 @@ export default function OrganizerPage() {
 
               <input
                 className="w-full rounded-lg border p-2"
+                placeholder="Venue name"
+                value={eventForm.venueName}
+                onChange={(e) =>
+                  setEventForm({ ...eventForm, venueName: e.target.value })
+                }
+              />
+
+              <input
+                className="w-full rounded-lg border p-2"
+                placeholder="Venue address"
+                value={eventForm.venueAddress}
+                onChange={(e) =>
+                  setEventForm({ ...eventForm, venueAddress: e.target.value })
+                }
+              />
+
+              <input
+                className="w-full rounded-lg border p-2"
                 placeholder="Category"
                 value={eventForm.category}
                 onChange={(e) =>
@@ -262,11 +288,12 @@ export default function OrganizerPage() {
               />
 
               <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
                 className="w-full rounded-lg border p-2"
-                placeholder="Image URL"
-                value={eventForm.image}
+                aria-label="Event thumbnail"
                 onChange={(e) =>
-                  setEventForm({ ...eventForm, image: e.target.value })
+                  setEventForm({ ...eventForm, thumbnail: e.target.files?.[0] || null })
                 }
               />
 

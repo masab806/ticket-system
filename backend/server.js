@@ -2,6 +2,7 @@ const dotenv = require("dotenv")
 dotenv.config()
 const express = require("express")
 const cors = require("cors")
+const path = require("path")
 const EventRouter = require("./routes/EventTicket.route")
 const mongoose = require("mongoose")
 
@@ -17,8 +18,11 @@ const connectDB = require("./config/db")
 const { stripeWebhook } = require("./controllers/PaymentController");
 const paymentRoutes = require("./routes/payment.route");
 const ticketRoutes = require("./routes/Ticket.route");
+const resaleRoutes = require("./routes/resale.route");
 
 const app = express()
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads"), { maxAge: "1d" }))
 
 // ADD — webhook route MUST come before express.json(), needs raw body
 app.post("/api/payments/webhook", express.raw({ type: "application/json" }), stripeWebhook);
@@ -36,6 +40,7 @@ app.use("/api/organizer/attendees", attendeeRoutes)
 app.use("/api/organizer/payouts", payoutRoutes)
 app.use("/api/events", EventRoutes)
 app.use("/api/tickets", ticketRoutes)
+app.use("/api/resale", resaleRoutes)
 
 connectDB()
 

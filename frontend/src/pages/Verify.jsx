@@ -19,8 +19,8 @@ import { cn } from '@/lib/utils'
 import api from '@/api/api'
 
 const samples = [
-  { label: 'Token ID 1', token: '1' },
-  { label: 'Counterfeit', token: 'FAKE-0000-0000-0000' },
+  { label: 'Token ID 1', token: 'TCK#-1' },
+  { label: 'Invalid token ID', token: '0' },
 ]
 
 const steps = [
@@ -30,16 +30,19 @@ const steps = [
 ]
 
 export default function VerifyPage() {
-  const [token, setToken] = useState('')
+  const [tokenId, setTokenId] = useState('')
   const [state, setState] = useState('idle')
   const [result, setResult] = useState(null)
 
   const verify = async (value) => {
-    setToken(value)
+    const normalizedTokenId = value.trim()
+    setTokenId(value)
     setState('checking')
     setResult(null)
     try {
-      const { data } = await api.post('/events/tickets/verify', { token: value.trim() })
+      const { data } = await api.post('/events/tickets/verify', {
+        tokenId: normalizedTokenId,
+      })
       setResult(data)
     } catch (error) {
       setResult({
@@ -65,8 +68,8 @@ export default function VerifyPage() {
               Verify a ticket
             </h1>
             <p className="mt-2 text-pretty text-muted-foreground">
-              Scan or paste a ticket token to confirm its authenticity directly
-              against the blockchain.
+              Enter the ticket ID shown on the ticket (for example, TCK#-1) to
+              confirm its authenticity against the blockchain.
             </p>
           </div>
         </section>
@@ -77,17 +80,17 @@ export default function VerifyPage() {
               <div className="relative flex-1">
                 <ScanLine className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  placeholder="Paste ticket token, e.g. AURORA-4821-…"
+                  value={tokenId}
+                  onChange={(e) => setTokenId(e.target.value)}
+                  placeholder="Enter ticket ID, e.g. TCK#-1"
                   className="pl-9 font-mono text-sm"
                 />
               </div>
               <Button
                 size="lg"
                 className="h-10 gap-2"
-                onClick={() => verify(token)}
-                disabled={!token || state === 'checking'}
+                onClick={() => verify(tokenId)}
+                disabled={!tokenId.trim() || state === 'checking'}
               >
                 {state === 'checking' ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -188,8 +191,6 @@ function ResultCard({ result }) {
       {result.status !== 'invalid' && (
         <dl className="mt-5 space-y-2 border-t border-border/60 pt-4 text-sm">
           <Row label="Event" value={result.event} />
-          <Row label="Tier" value={result.tier} />
-          <Row label="Seat" value={result.seat} />
           <Row label="Current owner" value={result.owner} mono />
           <Row label="Mint tx" value={result.txHash} mono />
           <Row label="Token ID" value={result.tokenId} mono />

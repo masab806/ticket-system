@@ -20,6 +20,14 @@ const EventSchema = new mongoose.Schema(
       trim: true,
       maxlength: 5000,
     },
+    category: {
+      type: String,
+      trim: true,
+    },
+    city: {
+      type: String,
+      trim: true,
+    },
     venue: {
       name: { type: String, trim: true },
       address: { type: String, trim: true },

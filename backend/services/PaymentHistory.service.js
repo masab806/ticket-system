@@ -2,6 +2,7 @@ const { Payment } = require("../models/Payment");
 
 const getUserPaymentHistory = async (userId) => {
   const payments = await Payment.find({ user: userId })
+    .where("status").ne("pending")
     .populate("event", "name title")
     .sort({ createdAt: -1 })
     .lean();
@@ -14,7 +15,11 @@ const getUserPaymentHistory = async (userId) => {
     amount: payment.amount,
     currency: payment.currency,
     direction: "out",
-    status: payment.status === "succeeded" ? "Confirmed" : payment.status,
+    status: payment.status === "succeeded"
+      ? "Confirmed"
+      : payment.status === "failed"
+        ? "Failed"
+        : "Pending",
     txHash: payment.stripePaymentIntentId,
     quantity: payment.quantity,
   }));

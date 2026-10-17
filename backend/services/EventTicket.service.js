@@ -10,12 +10,19 @@ const EVENT_TICKETS_ABI = [
   "function verifyTransaction(bytes32 txHash) view returns (bool)",
   "function verifyTicket(uint256 tokenId, bytes32 txHash) view returns (bool)",
   "function ownerOf(uint256 tokenId) view returns (address)",
+  "function owner() view returns (address)",
   "function getTotalTickets() view returns (uint256)",
+  "function transferTicket(address to, uint256 tokenId)",
   "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
 ];
 
 const contractAddress = process.env.EVENT_TICKETS_ADDRESS;
 const mintRecipient = process.env.PLATFORM_WALLET_ADDRESS || signer.address;
+const nonceManagedSigner = new ethers.NonceManager(signer);
+const custodySigner = process.env.PLATFORM_WALLET_PRIVATE_KEY
+  ? new ethers.Wallet(process.env.PLATFORM_WALLET_PRIVATE_KEY, provider)
+  : signer;
+const nonceManagedCustodySigner = new ethers.NonceManager(custodySigner);
 
 if (!contractAddress || !ethers.isAddress(contractAddress)) {
   throw new Error("EVENT_TICKETS_ADDRESS is missing or invalid");
@@ -25,8 +32,16 @@ if (!mintRecipient || !ethers.isAddress(mintRecipient)) {
   throw new Error("PLATFORM_WALLET_ADDRESS or signer address is required");
 }
 
-const contract = new ethers.Contract(contractAddress, EVENT_TICKETS_ABI, signer);
+const contract = new ethers.Contract(contractAddress, EVENT_TICKETS_ABI, nonceManagedSigner);
+const custodyContract = new ethers.Contract(contractAddress, EVENT_TICKETS_ABI, nonceManagedCustodySigner);
 const readOnlyContract = new ethers.Contract(contractAddress, EVENT_TICKETS_ABI, provider);
+let contractWriteQueue = Promise.resolve();
+
+function queueContractWrite(operation) {
+  const queuedOperation = contractWriteQueue.then(operation);
+  contractWriteQueue = queuedOperation.catch(() => {});
+  return queuedOperation;
+}
 
 async function getMintedTokenId(receipt) {
   for (const log of receipt.logs) {
@@ -61,7 +76,8 @@ async function getMintedTokenId(receipt) {
   return null;
 }
 
-async function mintTicket() {
+async function performMintTicket() {
+  try {
   const deployedCode = await provider.getCode(contractAddress);
   if (deployedCode === "0x") {
     const err = new Error(`No contract code found at EVENT_TICKETS_ADDRESS ${contractAddress}`);
@@ -99,6 +115,72 @@ async function mintTicket() {
     mintTxHash: receipt.hash,
     walletAddress: mintRecipient.toLowerCase(),
   };
+  } catch (error) {
+    nonceManagedSigner.reset();
+    nonceManagedCustodySigner.reset();
+    throw error;
+  }
+}
+
+function mintTicket() {
+  return queueContractWrite(performMintTicket);
+}
+
+async function performTransferTicketToBuyer({ tokenId, recipient }) {
+  if (!/^[1-9]\d*$/.test(String(tokenId))) {
+    const err = new Error("A valid on-chain token ID is required");
+    err.status = 400;
+    throw err;
+  }
+  if (!ethers.isAddress(recipient)) {
+    const err = new Error("A valid recipient wallet address is required");
+    err.status = 400;
+    throw err;
+  }
+
+  const custodyAddress = ethers.getAddress(custodySigner.address);
+  if (custodyAddress.toLowerCase() !== mintRecipient.toLowerCase()) {
+    const err = new Error(
+      "The custody signer must match PLATFORM_WALLET_ADDRESS. Configure PLATFORM_WALLET_PRIVATE_KEY for the wallet holding tickets."
+    );
+    err.status = 503;
+    throw err;
+  }
+
+  const currentOwner = await readOnlyContract.ownerOf(tokenId);
+  if (currentOwner.toLowerCase() === recipient.toLowerCase()) {
+    return { txHash: null, alreadyTransferred: true };
+  }
+  if (currentOwner.toLowerCase() !== custodyAddress.toLowerCase()) {
+    const err = new Error("The ticket is not held in the configured platform wallet");
+    err.status = 409;
+    throw err;
+  }
+
+  try {
+    const contractOwner = await readOnlyContract.owner();
+    if (contractOwner.toLowerCase() !== custodyAddress.toLowerCase()) {
+      const err = new Error("The custody signer must be the ticket contract owner to transfer platform-held resale tickets");
+      err.status = 503;
+      throw err;
+    }
+    const tx = await custodyContract.transferTicket(recipient, tokenId);
+    const receipt = await tx.wait();
+    if (receipt.status !== 1) {
+      const err = new Error("Ticket transfer transaction failed");
+      err.status = 502;
+      throw err;
+    }
+    return { txHash: receipt.hash, alreadyTransferred: false };
+  } catch (error) {
+    nonceManagedSigner.reset();
+    nonceManagedCustodySigner.reset();
+    throw error;
+  }
+}
+
+function transferTicketToBuyer(args) {
+  return queueContractWrite(() => performTransferTicketToBuyer(args));
 }
 
 async function verifyTicket({ tokenId, txHash }) {
@@ -140,23 +222,41 @@ async function verifyTicket({ tokenId, txHash }) {
     };
   }
 
-  async function verifyTicketToken(token) {
-    if (!token || typeof token !== "string") {
-      const err = new Error("A ticket token is required");
+  async function verifyTicketByTokenId(tokenId) {
+    if (typeof tokenId !== "string") {
+      const err = new Error("A valid ticket ID is required");
       err.status = 400;
       throw err;
-  }
+    }
 
-    const ticket = await Ticket.findOne({
-      $or: [{ tokenId: token.trim() }, { mintTxHash: token.trim() }],
-    }).lean();
+    const normalizedTokenId = tokenId.trim();
+    const displayTokenId = normalizedTokenId.replace(/^#?TCK#?-?/i, "");
+    if (!/^[1-9]\d*$/.test(displayTokenId)) {
+      const err = new Error("A valid ticket ID is required");
+      err.status = 400;
+      throw err;
+    }
+
+    const hasTicketPrefix = /^(#?TCK#?-?)/i.test(normalizedTokenId);
+    let ticket;
+    if (hasTicketPrefix) {
+      ticket = await Ticket.findOne({ tokenId: `TCK#-${displayTokenId}` }).lean();
+      if (!ticket) {
+        ticket = await Ticket.findOne({ tokenId: displayTokenId }).lean();
+      }
+    } else {
+      ticket = await Ticket.findOne({
+        $or: [{ chainTokenId: displayTokenId }, { tokenId: displayTokenId }],
+      }).lean();
+    }
 
     if (!ticket) {
       return { valid: false, status: "invalid", reason: "Ticket token was not found" };
     }
 
+    const chainTokenId = ticket.chainTokenId || ticket.tokenId;
     const chainResult = await verifyTicket({
-      tokenId: ticket.tokenId,
+      tokenId: chainTokenId,
       txHash: ticket.mintTxHash,
     });
 
@@ -166,6 +266,8 @@ async function verifyTicket({ tokenId, txHash }) {
 
     return {
       ...chainResult,
+      tokenId: ticket.tokenId.startsWith("TCK#-") ? ticket.tokenId : `TCK#-${ticket.tokenId}`,
+      chainTokenId,
       status: chainResult.valid ? (ticket.status === "used" ? "used" : "valid") : "invalid",
       event: event?.title || event?.name || "Unknown event",
       owner: chainResult.owner || ticket.walletAddress,
@@ -179,4 +281,22 @@ async function getTotalTickets() {
   return total.toString();
 }
 
-module.exports = { mintTicket, verifyTicket, verifyTicketToken, getTotalTickets };
+async function getTicketCustodyStatus(tokenId) {
+  if (!/^[1-9]\d*$/.test(String(tokenId))) {
+    throw new Error("A valid on-chain token ID is required");
+  }
+  const currentOwner = await readOnlyContract.ownerOf(tokenId);
+  return {
+    owner: currentOwner,
+    heldByPlatform: currentOwner.toLowerCase() === mintRecipient.toLowerCase(),
+  };
+}
+
+module.exports = {
+  mintTicket,
+  transferTicketToBuyer,
+  verifyTicket,
+  verifyTicketByTokenId,
+  getTotalTickets,
+  getTicketCustodyStatus,
+};

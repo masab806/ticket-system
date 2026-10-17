@@ -7,11 +7,13 @@ import ResalePage from "@/pages/Resale";
 import TicketsPage from "@/pages/Tickets";
 import VerifyPage from "@/pages/Verify";
 import CheckoutPage from "@/pages/Checkout";
+import AdminPage from "@/pages/Admin";
 
 import LoginPage from "@/pages/Login";
 import SignupPage from "@/pages/Signup";
 
 import ProtectedOrganizerRoute from "@/components/ProtectedOrganizerRoute";
+import ProtectedAdminRoute from "@/components/ProtectedAdminRoute";
 
 import { EventDetail } from "@/components/event/event-detail";
 
@@ -43,6 +45,14 @@ const router = createBrowserRouter([
             <OrganizerPage />
         </ProtectedOrganizerRoute>
     )
+    },
+    {
+        path: '/admin',
+        element: (
+            <ProtectedAdminRoute>
+                <AdminPage />
+            </ProtectedAdminRoute>
+        )
     },
     {
         path: '/resale',

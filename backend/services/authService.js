@@ -5,7 +5,11 @@ const jwt = require('jsonwebtoken');
 const transporter = require('./emailService');
 const user = require('../models/user');
 
-const signupUser = async (email, password) => {
+const signupUser = async (name, email, password) => {
+    if (!name || !name.trim()) {
+        throw new Error("Name is required");
+    }
+
     if (!email || !password) {
         throw new Error("Email and password are required");
     }
@@ -35,6 +39,7 @@ const signupUser = async (email, password) => {
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
     const newUser = new User({
+        name: name.trim(),
         email : normalizedEmail,
         password: hashedPassword,
         verified: false,

@@ -1,5 +1,6 @@
 const express = require("express");
 const organizerController = require("../controllers/organizerController");
+const { uploadEventThumbnail } = require("../middleware/eventThumbnailUpload");
 const {
     verifyToken,
     requireOrganizer
@@ -18,6 +19,7 @@ router.post(
     "/events/:organizerId",
     verifyToken,
     requireOrganizer,
+    uploadEventThumbnail,
     organizerController.createEvent
 );
 

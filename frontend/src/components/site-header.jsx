@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { Ticket, Menu, X, Wallet, ShieldCheck } from 'lucide-react'
+import { Ticket, Menu, X, ShieldCheck, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
@@ -17,15 +17,17 @@ export function SiteHeader() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
 
-  const { role, logout, user } = useAuth()
+  const { role, logout, token, user } = useAuth()
+  const username = user && typeof user.name === 'string' ? user.name.trim() : ''
 
   const handleLogout = () => {
     logout()
     navigate('/login')
   }
 
-  const navigationItems =
-    role === 'organizer'
+  const navigationItems = role === 'admin'
+    ? [...nav, { href: '/admin', label: 'Admin' }]
+    : role === 'organizer'
       ? [...nav, { href: '/organizer', label: 'Organizer' }]
       : nav
 
@@ -72,7 +74,27 @@ export function SiteHeader() {
             <span className="hidden sm:inline">Connect Wallet</span>
             <span className="sm:hidden">Connect</span>
           </Button> */}
-          {user ? <Button variant="outline" size="sm" onClick={handleLogout} >Logout </Button> : <Link to="/login"><Button className='cursor-pointer' size='sm'>Login</Button></Link>}
+          {token ? (
+            <>
+              {username && (
+                <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
+                  <UserRound className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <span className="max-w-40 truncate" title={username}>
+                    {username}
+                  </span>
+                </div>
+              )}
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                Logout
+              </Button>
+            </>
+          ) : (
+            <Link to="/login">
+              <Button className="cursor-pointer" size="sm">
+                Login
+              </Button>
+            </Link>
+          )}
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}

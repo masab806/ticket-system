@@ -1,4 +1,4 @@
-const { verifyTicketToken, getTotalTickets } = require("../services/EventTicket.service");
+const { verifyTicketByTokenId, getTotalTickets } = require("../services/EventTicket.service");
 
 async function GetTotalTickets(req, res) {
     try {
@@ -12,7 +12,7 @@ async function GetTotalTickets(req, res) {
 
 async function VerifyTicket(req, res) {
     try {
-        const result = await verifyTicketToken(req.body.token);
+        const result = await verifyTicketByTokenId(req.body.tokenId);
         return res.status(200).json({ success: true, ...result });
     } catch (error) {
         console.error(error);

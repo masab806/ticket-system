@@ -45,7 +45,15 @@ export default function HistoryPage() {
   const visible = transactions.filter((transaction) =>
     filter === 'All' || transaction.type === filter
   )
-  const spent = transactions.reduce((sum, transaction) => sum + (transaction.amount || 0), 0)
+  const confirmedTransactions = transactions.filter((transaction) => transaction.status === 'Confirmed')
+  const spentByCurrency = confirmedTransactions.reduce((totals, transaction) => {
+    const currency = transaction.currency || 'USD'
+    totals[currency] = (totals[currency] || 0) + (Number(transaction.amount) || 0)
+    return totals
+  }, {})
+  const spent = Object.entries(spentByCurrency).length
+    ? Object.entries(spentByCurrency).map(([currency, amount]) => formatAmount(amount, currency)).join(' · ')
+    : formatAmount(0, transactions[0]?.currency || 'PKR')
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -64,7 +72,7 @@ export default function HistoryPage() {
               Your Stripe payments and ticket purchase records.
             </p>
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              <Stat label="Total spent" value={formatAmount(spent)} />
+              <Stat label="Total spent" value={spent} />
               <Stat label="Successful payments" value={String(transactions.filter((t) => t.status === 'Confirmed').length)} />
               <Stat label="Transactions" value={String(transactions.length)} />
             </div>
@@ -101,14 +109,14 @@ export default function HistoryPage() {
           ) : (
             <div className="overflow-hidden rounded-2xl border border-border bg-card">
               {visible.map((transaction, index) => (
-                <div key={transaction.id} className={cn('flex items-center gap-4 p-4', index !== visible.length - 1 && 'border-b border-border')}>
+                <div key={transaction.id} className={cn('flex flex-wrap items-center gap-4 p-4', index !== visible.length - 1 && 'border-b border-border')}>
                   <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
                     <ArrowUpRight className="size-5" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="truncate font-medium">{transaction.event}</p>
-                      <Badge variant={transaction.status === 'Confirmed' ? 'success' : 'warning'}>{transaction.status}</Badge>
+                      <Badge variant={transaction.status === 'Confirmed' ? 'success' : transaction.status === 'Failed' ? 'destructive' : 'warning'}>{transaction.status}</Badge>
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       Purchase · {new Date(transaction.date).toLocaleString()} · {transaction.quantity} ticket(s)

@@ -11,14 +11,26 @@ const getEvents = async (req, res) => {
 
 const createEvent = async (req, res) => {
   try {
+    const venue = typeof req.body.venue === "string"
+      ? JSON.parse(req.body.venue)
+      : req.body.venue;
     const eventData = {
       ...req.body,
+      venue,
+      ...(req.file && {
+        bannerUrl: `${req.protocol}://${req.get("host")}/uploads/events/${req.file.filename}`,
+      }),
       organizer: req.params.organizerId,
     };
 
     const event = await organizerService.createEvent(eventData);
     res.status(201).json(event);
   } catch (error) {
+    if (req.file) {
+      require("fs").promises.unlink(req.file.path).catch((cleanupError) => {
+        console.error("Failed to remove rejected event thumbnail:", cleanupError);
+      });
+    }
     res.status(400).json({ message: error.message });
   }
 };

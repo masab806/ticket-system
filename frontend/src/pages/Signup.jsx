@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 export default function SignupPage() {
     const navigate = useNavigate();
 
+    const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -39,6 +40,7 @@ export default function SignupPage() {
 
     try {
         const response = await api.post("/auth/signup", {
+            name,
             email,
             password,
         });
@@ -78,6 +80,20 @@ export default function SignupPage() {
 
                 <CardContent>
                     <form onSubmit={handleSignup} className="space-y-5">
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">
+                                Name
+                            </label>
+
+                            <Input
+                                type="text"
+                                placeholder="Enter your name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required
+                            />
+                        </div>
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium">

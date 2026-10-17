@@ -53,6 +53,14 @@ export default function TicketsPage() {
     if (tab === 'Listed') return t.status === 'Listed'
     return t.status === 'Used'
   })
+  const groupedTickets = Object.values(
+    visible.reduce((groups, ticket) => {
+      const key = ticket.eventId || ticket.eventTitle
+      if (!groups[key]) groups[key] = []
+      groups[key].push(ticket)
+      return groups
+    }, {}),
+  )
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -100,13 +108,14 @@ export default function TicketsPage() {
               <p className="font-medium">Sign in to view your tickets</p>
               <Link to="/login" className="mt-5 inline-block"><Button>Log in</Button></Link>
             </div>
-          ) : visible.length > 0 ? (
+          ) : groupedTickets.length > 0 ? (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {visible.map((ticket) => {
+              {groupedTickets.map((tickets) => {
+                const ticket = tickets[0]
                 const s = statusMap[ticket.status]
                 return (
                   <div
-                    key={ticket.id}
+                    key={ticket.eventId || ticket.eventTitle}
                     className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
                   >
                     <div className="relative aspect-[16/9]">
@@ -119,6 +128,11 @@ export default function TicketsPage() {
                       <div className="absolute left-3 top-3">
                         <Badge variant={s.variant}>{s.label}</Badge>
                       </div>
+                      {tickets.length > 1 && (
+                        <div className="absolute right-3 top-3">
+                          <Badge variant="secondary">x{tickets.length}</Badge>
+                        </div>
+                      )}
                       <div className="absolute inset-x-3 bottom-3">
                         <p className="text-pretty font-semibold text-white">
                           {ticket.eventTitle}
@@ -135,23 +149,47 @@ export default function TicketsPage() {
                           <MapPin className="size-3.5" />
                           {ticket.venue}, {ticket.city}
                         </p>
+                        {ticket.venueAddress && (
+                          <p className="pl-5">{ticket.venueAddress}</p>
+                        )}
                       </div>
                       <div className="mt-3 flex items-center justify-between rounded-lg bg-muted/60 px-3 py-2 text-sm">
-                        <span className="font-medium">{ticket.tier}</span>
-                        <span className="font-mono text-xs text-muted-foreground">
-                          {ticket.ticketId}
+                        <span className="font-medium">
+                          {tickets.length === 1 ? '1 ticket' : `${tickets.length} tickets`}
                         </span>
+                        {tickets.length === 1 && (
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {ticket.ticketId}
+                          </span>
+                        )}
                       </div>
-                      <p className="mt-2 text-xs text-muted-foreground">{ticket.seat}</p>
+                      {tickets.length > 1 && (
+                        <details className="mt-2 text-xs">
+                          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                            View ticket IDs
+                          </summary>
+                          <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                            {tickets.map((item) => (
+                              <span
+                                key={item.id}
+                                className="truncate rounded-md bg-muted px-2 py-1 text-center font-mono text-muted-foreground"
+                                title={item.ticketId}
+                              >
+                                {item.ticketId}
+                              </span>
+                            ))}
+                          </div>
+                        </details>
+                      )}
 
                       <div className="mt-4 flex gap-2">
                         <Button
                           className="flex-1 gap-1.5"
-                          onClick={() => setActive(ticket)}
-                          disabled={ticket.status === 'Used'}
+                          onClick={() => setActive(tickets)}
+                          disabled={tickets.every((item) => item.status === 'Used')}
                         >
                           <QrIcon className="size-4" />
-                          Show
+                          {tickets.length > 1 ? 'Show tickets' : 'Show ticket'}
                         </Button>
                         <Button variant="outline" size="icon" aria-label="Transfer">
                           <Send className="size-4" />
@@ -182,12 +220,15 @@ export default function TicketsPage() {
       </main>
       <SiteFooter />
 
-      {active && <TicketModal ticket={active} onClose={() => setActive(null)} />}
+      {active && <TicketModal tickets={active} onClose={() => setActive(null)} />}
     </div>
   )
 }
 
-function TicketModal({ ticket, onClose }) {
+function TicketModal({ tickets, onClose }) {
+  const [ticketIndex, setTicketIndex] = useState(0)
+  const ticket = tickets[ticketIndex]
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm"
@@ -212,9 +253,31 @@ function TicketModal({ ticket, onClose }) {
           <div className="mx-auto max-w-[220px]">
             <QrCode token={ticket.qrToken} />
           </div>
-          <p className="mt-3 text-center text-xs text-muted-foreground">
-            Rotating secure token · scan at entry
-          </p>
+          <div className="mt-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+            {tickets.length > 1 ? (
+              <>
+                <button
+                  type="button"
+                  className="underline underline-offset-2 disabled:opacity-40"
+                  onClick={() => setTicketIndex((index) => index - 1)}
+                  disabled={ticketIndex === 0}
+                >
+                  Previous
+                </button>
+                <span>Ticket {ticketIndex + 1} of {tickets.length}</span>
+                <button
+                  type="button"
+                  className="underline underline-offset-2 disabled:opacity-40"
+                  onClick={() => setTicketIndex((index) => index + 1)}
+                  disabled={ticketIndex === tickets.length - 1}
+                >
+                  Next
+                </button>
+              </>
+            ) : (
+              <span className="w-full text-center">Rotating secure token · scan at entry</span>
+            )}
+          </div>
 
           <dl className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
             <Row label="Ticket ID" value={ticket.ticketId} mono />

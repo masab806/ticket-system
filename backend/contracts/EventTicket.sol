@@ -21,6 +21,11 @@ contract EventTickets is ERC721, Ownable {
         }
     }
 
+    function transferTicket(address to, uint256 tokenId) external {
+        require(to != address(0), "Invalid recipient");
+        safeTransferFrom(msg.sender, to, tokenId);
+    }
+
     function registerMintTransaction(bytes32 txHash, uint256[] calldata tokenIds) external onlyOwner {
         require(txHash != bytes32(0), "Invalid transaction hash");
         require(tokenIds.length > 0, "No token IDs");

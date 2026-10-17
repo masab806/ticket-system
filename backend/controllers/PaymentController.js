@@ -1,4 +1,5 @@
 const paymentService = require("../services/Paymentservice");
+const resaleService = require("../services/Resale.service");
 
 const createPaymentIntent = async (req, res) => {
   try {
@@ -34,9 +35,17 @@ const stripeWebhook = async (req, res) => {
 
   try {
     if (event.type === "payment_intent.succeeded") {
-      await paymentService.handlePaymentSucceeded(event.data.object);
+      if (event.data.object.metadata?.flow === "resale") {
+        await resaleService.handleResalePaymentSucceeded(event.data.object);
+      } else {
+        await paymentService.handlePaymentSucceeded(event.data.object);
+      }
     } else if (event.type === "payment_intent.payment_failed") {
-      await paymentService.handlePaymentFailed(event.data.object);
+      if (event.data.object.metadata?.flow === "resale") {
+        await resaleService.handleResalePaymentFailed(event.data.object);
+      } else {
+        await paymentService.handlePaymentFailed(event.data.object);
+      }
     }
     res.json({ received: true });
   } catch (err) {

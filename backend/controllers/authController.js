@@ -3,9 +3,9 @@ const authService = require('../services/authService');
 //signup route into function
 const signup = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { name, email, password } = req.body;
 
-        const result = await authService.signupUser(email, password);
+        const result = await authService.signupUser(name, email, password);
 
         res.status(201).json(result);
 
@@ -15,6 +15,7 @@ const signup = async (req, res) => {
 
     const validationErrors = [
         "Email already registered",
+        "Name is required",
         "Email and password are required",
         "Please enter a valid email address",
         "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character."

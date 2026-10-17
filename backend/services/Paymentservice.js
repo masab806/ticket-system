@@ -2,6 +2,7 @@ const Stripe = require("stripe");
 const { Ticket } = require("../models/Ticket");
 const { Event } = require("../models/Event");
 const { Payment } = require("../models/Payment");
+const { TicketCounter } = require("../models/TicketCounter");
 const { mintTicket } = require("./EventTicket.service");
 
 if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_SECRET_KEY.startsWith("sk_")) {
@@ -9,7 +10,7 @@ if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_SECRET_KEY.startsWith(
 }
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-const stripeCurrency = (process.env.STRIPE_CURRENCY || "usd").toLowerCase();
+const paymentProcessing = new Map();
 
 const createPaymentIntentForTicket = async ({ ticketId, userId, quantity = 1 }) => {
   const event = await Event.findById(ticketId);
@@ -37,7 +38,7 @@ const createPaymentIntentForTicket = async ({ ticketId, userId, quantity = 1 }) 
   try {
     paymentIntent = await stripe.paymentIntents.create({
       amount,
-      currency: stripeCurrency,
+      currency: event.currency.toLowerCase(),
       metadata: {
         ticketId: event._id.toString(),
         eventId: event._id.toString(),
@@ -68,7 +69,7 @@ const verifyWebhookSignature = (rawBody, signature) => {
   return stripe.webhooks.constructEvent(rawBody, signature, process.env.STRIPE_WEBHOOK_SECRET);
 };
 
-const handlePaymentSucceeded = async (intent) => {
+const processPaymentSucceeded = async (intent) => {
   const { eventId, userId } = intent.metadata;
   const quantity = Number(intent.metadata.quantity || 1);
 
@@ -94,10 +95,16 @@ const handlePaymentSucceeded = async (intent) => {
 
     try {
       const minted = await mintTicket();
+      const counter = await TicketCounter.findOneAndUpdate(
+        { _id: "ticketId" },
+        { $inc: { sequence: 1 } },
+        { new: true, upsert: true }
+      );
       const ticket = await Ticket.create({
         eventId,
         user: userId,
-        tokenId: minted.tokenId,
+        tokenId: `TCK#-${counter.sequence}`,
+        chainTokenId: minted.tokenId,
         mintTxHash: minted.mintTxHash,
         walletAddress: minted.walletAddress,
         pricePaid: Number(intent.amount) / 100 / quantity,
@@ -121,6 +128,17 @@ const handlePaymentSucceeded = async (intent) => {
   return Ticket.find({ _id: { $in: ticketIds } });
 };
 
+const handlePaymentSucceeded = (intent) => {
+  const currentOperation = paymentProcessing.get(intent.id);
+  if (currentOperation) return currentOperation;
+
+  const operation = processPaymentSucceeded(intent).finally(() => {
+    paymentProcessing.delete(intent.id);
+  });
+  paymentProcessing.set(intent.id, operation);
+  return operation;
+};
+
 const handlePaymentFailed = async (intent) => {
   await Payment.findOneAndUpdate({ stripePaymentIntentId: intent.id }, { status: "failed" });
 };
@@ -130,4 +148,5 @@ module.exports = {
   verifyWebhookSignature,
   handlePaymentSucceeded,
   handlePaymentFailed,
+  stripe,
 };
