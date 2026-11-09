@@ -261,7 +261,7 @@ async function verifyTicket({ tokenId, txHash }) {
     });
 
     const event = await Event.findById(ticket.eventId)
-      .select("name title")
+      .select("name title startsAt endsAt venue city ticketPrice currency")
       .lean();
 
     return {
@@ -270,6 +270,16 @@ async function verifyTicket({ tokenId, txHash }) {
       chainTokenId,
       status: chainResult.valid ? (ticket.status === "used" ? "used" : "valid") : "invalid",
       event: event?.title || event?.name || "Unknown event",
+      eventDate: event?.startsAt || null,
+      eventEndDate: event?.endsAt || null,
+      venue: event?.venue?.name || "Venue TBA",
+      venueAddress: event?.venue?.address || "",
+      city: event?.venue?.city || event?.city || "",
+      tier: "General Admission",
+      seat: "General Admission",
+      pricePaid: ticket.pricePaid ?? event?.ticketPrice ?? null,
+      currency: ticket.currency || event?.currency || "",
+      purchasedAt: ticket.soldAt || ticket.createdAt || null,
       owner: chainResult.owner || ticket.walletAddress,
       txHash: ticket.mintTxHash,
       ticketStatus: ticket.status,

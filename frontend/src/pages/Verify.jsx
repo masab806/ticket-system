@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { jsPDF } from 'jspdf'
 import {
   ShieldCheck,
   ScanLine,
@@ -9,6 +11,7 @@ import {
   Link2,
   Fingerprint,
   Blocks,
+  Download,
 } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -17,11 +20,14 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import api from '@/api/api'
+import { useAuth } from '@/context/AuthContext'
 
 const samples = [
   { label: 'Token ID 1', token: 'TCK#-1' },
   { label: 'Invalid token ID', token: '0' },
 ]
+
+const verificationEndpoint = 'https://unshapen-dandiacally-alessandro.ngrok-free.dev/api/events/tickets/verify'
 
 const steps = [
   { icon: Fingerprint, label: 'Reading secure token' },
@@ -30,20 +36,51 @@ const steps = [
 ]
 
 export default function VerifyPage() {
+  const { role } = useAuth()
+
+  if (role !== 'organizer' && role !== 'admin') {
+    return <UnauthorizedAccess />
+  }
+
+  return <VerifyContent />
+}
+
+function UnauthorizedAccess() {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader />
+      <main className="flex flex-1 items-center justify-center px-4 py-16">
+        <div className="text-center">
+          <h1 className="text-3xl font-semibold tracking-tight">Unauthorized Access</h1>
+          <p className="mt-2 text-muted-foreground">
+            Only organizers and admins can access ticket verification.
+          </p>
+        </div>
+      </main>
+      <SiteFooter />
+    </div>
+  )
+}
+
+function VerifyContent() {
   const [tokenId, setTokenId] = useState('')
   const [state, setState] = useState('idle')
   const [result, setResult] = useState(null)
+  const [searchParams] = useSearchParams()
+  const scannedToken = searchParams.get('token')
+  const handledScannedToken = useRef(null)
 
-  const verify = async (value) => {
+  const verify = useCallback(async (value, { download = false } = {}) => {
     const normalizedTokenId = value.trim()
     setTokenId(value)
     setState('checking')
     setResult(null)
     try {
-      const { data } = await api.post('/events/tickets/verify', {
+      const { data } = await api.post(verificationEndpoint, {
         tokenId: normalizedTokenId,
       })
       setResult(data)
+      if (download && data.valid) downloadTicketPdf(data)
     } catch (error) {
       setResult({
         status: 'invalid',
@@ -52,7 +89,13 @@ export default function VerifyPage() {
     } finally {
       setState('done')
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (!scannedToken || handledScannedToken.current === scannedToken) return
+    handledScannedToken.current = scannedToken
+    void verify(scannedToken, { download: true })
+  }, [scannedToken, verify])
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -189,15 +232,82 @@ function ResultCard({ result }) {
       </div>
 
       {result.status !== 'invalid' && (
-        <dl className="mt-5 space-y-2 border-t border-border/60 pt-4 text-sm">
-          <Row label="Event" value={result.event} />
-          <Row label="Current owner" value={result.owner} mono />
-          <Row label="Mint tx" value={result.txHash} mono />
-          <Row label="Token ID" value={result.tokenId} mono />
-        </dl>
+        <>
+          <dl className="mt-5 space-y-2 border-t border-border/60 pt-4 text-sm">
+            <Row label="Event" value={result.event} />
+            <Row label="Current owner" value={result.owner} mono />
+            <Row label="Mint tx" value={result.txHash} mono />
+            <Row label="Token ID" value={result.tokenId} mono />
+          </dl>
+          {result.valid && (
+            <Button className="mt-5 gap-2" variant="outline" onClick={() => downloadTicketPdf(result)}>
+              <Download className="size-4" />
+              Download verified ticket PDF
+            </Button>
+          )}
+        </>
       )}
     </div>
   )
+}
+
+function downloadTicketPdf(ticket) {
+  const pdf = new jsPDF()
+  const pageWidth = pdf.internal.pageSize.getWidth()
+  const contentWidth = pageWidth - 28
+  let y = 20
+
+  pdf.setFontSize(18)
+  pdf.text('Blockchain-Verified Ticket', 14, y)
+  y += 12
+  pdf.setFontSize(11)
+  pdf.setFont('helvetica', 'bold')
+  pdf.text('BLOCKCHAIN VERIFICATION: VERIFIED', 14, y)
+  pdf.setFont('helvetica', 'normal')
+  y += 10
+
+  const fields = [
+    ['Ticket ID', ticket.tokenId],
+    ['Event', ticket.event],
+    ['Event date', formatDate(ticket.eventDate)],
+    ['Event ends', ticket.eventEndDate ? formatDate(ticket.eventEndDate) : 'Not provided'],
+    ['Venue', ticket.venue],
+    ['Venue address', ticket.venueAddress],
+    ['City', ticket.city],
+    ['Ticket tier', ticket.tier],
+    ['Seat', ticket.seat],
+    ['Ticket status', ticket.status === 'used' ? 'Used' : 'Valid'],
+    ['Price paid', ticket.pricePaid == null ? 'Not provided' : `${ticket.pricePaid} ${ticket.currency}`.trim()],
+    ['Purchased at', formatDate(ticket.purchasedAt)],
+    ['Blockchain token ID', ticket.chainTokenId],
+    ['Current owner', ticket.owner],
+    ['Mint transaction', ticket.txHash],
+    ['Verified at', new Date().toLocaleString()],
+  ]
+
+  for (const [label, rawValue] of fields) {
+    const value = rawValue == null || rawValue === '' ? 'Not provided' : String(rawValue)
+    const lines = pdf.splitTextToSize(value, contentWidth)
+    const fieldHeight = Math.max(10, lines.length * 5 + 5)
+    if (y + fieldHeight > pdf.internal.pageSize.getHeight() - 14) {
+      pdf.addPage()
+      y = 20
+    }
+
+    pdf.setFont('helvetica', 'bold')
+    pdf.text(`${label}:`, 14, y)
+    pdf.setFont('helvetica', 'normal')
+    pdf.text(lines, 14, y + 5)
+    y += fieldHeight
+  }
+
+  pdf.save(`ticket-${String(ticket.tokenId || 'verified').replace(/[^a-zA-Z0-9_-]/g, '-')}.pdf`)
+}
+
+function formatDate(value) {
+  if (!value) return 'Not provided'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? 'Not provided' : date.toLocaleString()
 }
 
 function Row({ label, value, mono }) {

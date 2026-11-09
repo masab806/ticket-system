@@ -251,7 +251,9 @@ function TicketModal({ tickets, onClose }) {
         </div>
         <div className="p-5">
           <div className="mx-auto max-w-[220px]">
-            <QrCode token={ticket.qrToken} />
+            <QrCode
+              token={`${window.location.origin}/verify?token=${encodeURIComponent(ticket.qrToken)}`}
+            />
           </div>
           <div className="mt-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">
             {tickets.length > 1 ? (
@@ -275,7 +277,7 @@ function TicketModal({ tickets, onClose }) {
                 </button>
               </>
             ) : (
-              <span className="w-full text-center">Rotating secure token · scan at entry</span>
+              <span className="w-full text-center">Scan to verify on-chain and download your ticket PDF</span>
             )}
           </div>
 

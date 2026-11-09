@@ -63,12 +63,14 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <Link to="/verify" className="hidden sm:block">
-            <Button variant="ghost" size="sm" className="gap-1.5">
-              <ShieldCheck className="size-4 text-success" />
-              Verify
-            </Button>
-          </Link>
+          {(role === 'organizer' || role === 'admin') && (
+            <Link to="/verify" className="hidden sm:block">
+              <Button variant="ghost" size="sm" className="gap-1.5">
+                <ShieldCheck className="size-4 text-success" />
+                Verify
+              </Button>
+            </Link>
+          )}
           {/* <Button size="sm" className="gap-1.5">
             <Wallet className="size-4" />
             <span className="hidden sm:inline">Connect Wallet</span>
@@ -109,7 +111,12 @@ export function SiteHeader() {
       {open && (
         <div className="border-t border-border bg-background md:hidden">
           <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3">
-            {[...navigationItems, { href: '/verify', label: 'Verify Ticket' }].map((item) => (
+            {[
+              ...navigationItems,
+              ...(role === 'organizer' || role === 'admin'
+                ? [{ href: '/verify', label: 'Verify Ticket' }]
+                : []),
+            ].map((item) => (
               <Link
                 key={item.href}
                 to={item.href}
