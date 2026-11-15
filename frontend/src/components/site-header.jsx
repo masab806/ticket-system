@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { Ticket, Menu, X, Wallet, ShieldCheck } from 'lucide-react'
+import { Ticket, Menu, X, ShieldCheck, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
@@ -17,15 +17,17 @@ export function SiteHeader() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
 
-  const { role, logout, user } = useAuth()
+  const { role, logout, token, user } = useAuth()
+  const username = user && typeof user.name === 'string' ? user.name.trim() : ''
 
   const handleLogout = () => {
     logout()
     navigate('/login')
   }
 
-  const navigationItems =
-    role === 'organizer'
+  const navigationItems = role === 'admin'
+    ? [...nav, { href: '/admin', label: 'Admin' }]
+    : role === 'organizer'
       ? [...nav, { href: '/organizer', label: 'Organizer' }]
       : nav
 
@@ -36,7 +38,7 @@ export function SiteHeader() {
           <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
             <Ticket className="size-5" />
           </span>
-          <span className="text-lg font-semibold tracking-tight">Tessera</span>
+          <span className="text-lg font-semibold tracking-tight">ChainTix</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
@@ -61,18 +63,40 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <Link to="/verify" className="hidden sm:block">
-            <Button variant="ghost" size="sm" className="gap-1.5">
-              <ShieldCheck className="size-4 text-success" />
-              Verify
-            </Button>
-          </Link>
+          {(role === 'organizer' || role === 'admin') && (
+            <Link to="/verify" className="hidden sm:block">
+              <Button variant="ghost" size="sm" className="gap-1.5">
+                <ShieldCheck className="size-4 text-success" />
+                Verify
+              </Button>
+            </Link>
+          )}
           {/* <Button size="sm" className="gap-1.5">
             <Wallet className="size-4" />
             <span className="hidden sm:inline">Connect Wallet</span>
             <span className="sm:hidden">Connect</span>
           </Button> */}
-          {user ? <Button variant="outline" size="sm" onClick={handleLogout} >Logout </Button> : <Link to="/login"><Button className='cursor-pointer' size='sm'>Login</Button></Link>}
+          {token ? (
+            <>
+              {username && (
+                <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
+                  <UserRound className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <span className="max-w-40 truncate" title={username}>
+                    {username}
+                  </span>
+                </div>
+              )}
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                Logout
+              </Button>
+            </>
+          ) : (
+            <Link to="/login">
+              <Button className="cursor-pointer" size="sm">
+                Login
+              </Button>
+            </Link>
+          )}
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
@@ -87,7 +111,12 @@ export function SiteHeader() {
       {open && (
         <div className="border-t border-border bg-background md:hidden">
           <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3">
-            {[...navigationItems, { href: '/verify', label: 'Verify Ticket' }].map((item) => (
+            {[
+              ...navigationItems,
+              ...(role === 'organizer' || role === 'admin'
+                ? [{ href: '/verify', label: 'Verify Ticket' }]
+                : []),
+            ].map((item) => (
               <Link
                 key={item.href}
                 to={item.href}

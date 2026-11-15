@@ -3,24 +3,33 @@ const authService = require('../services/authService');
 //signup route into function
 const signup = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { name, email, password } = req.body;
 
-        const result = await authService.signupUser(email, password);
+        const result = await authService.signupUser(name, email, password);
 
         res.status(201).json(result);
 
-    } catch (err) {
-        console.error(err);
+    } 
+    catch (err) {
+    console.error(err);
 
-        if (err.message === "Email already registered") {
-            return res.status(400).json({
-                error: err.message
-            });
-        }
+    const validationErrors = [
+        "Email already registered",
+        "Name is required",
+        "Email and password are required",
+        "Please enter a valid email address",
+        "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character."
+    ];
 
-        res.status(500).json({
-            error: "Server error during signup"
+    if (validationErrors.includes(err.message)) {
+        return res.status(400).json({
+            error: err.message
         });
+    }
+
+    return res.status(500).json({
+        error: "Server error during signup"
+    });
     }
 };
 
@@ -49,19 +58,22 @@ const login = async (req, res) => {
 
         res.status(200).json(result);
 
-    } catch (err) {
+    } 
+    catch (err) {
         console.error(err);
+        const validationErrors = [
+            "Email and password are required",
+            "Invalid email or password",
+            "Please verify your email before logging in."
+        ];
 
-        if (
-            err.message === "Invalid email or password" ||
-            err.message === "Please verify your email before logging in."
-        ) {
+        if (validationErrors.includes(err.message)) {
             return res.status(400).json({
                 error: err.message
             });
         }
 
-        res.status(500).json({
+        return res.status(500).json({
             error: "Server error during login"
         });
     }

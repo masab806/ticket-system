@@ -1,14 +1,18 @@
-const paymentService = require("../services/payment.service");
+const paymentService = require("../services/Paymentservice");
+const resaleService = require("../services/Resale.service");
 
 const createPaymentIntent = async (req, res) => {
   try {
-    const { ticketId, walletAddress } = req.body;
-    const userId = req.user.id;
+    const { eventId, ticketId, quantity } = req.body;
+    const userId = req.user.userId;
+    if (!userId) {
+      return res.status(401).json({ message: "Authenticated user ID is missing" });
+    }
 
     const result = await paymentService.createPaymentIntentForTicket({
-      ticketId,
+      ticketId: eventId || ticketId,
       userId,
-      walletAddress,
+      quantity,
     });
 
     res.json(result);
@@ -31,9 +35,17 @@ const stripeWebhook = async (req, res) => {
 
   try {
     if (event.type === "payment_intent.succeeded") {
-      await paymentService.handlePaymentSucceeded(event.data.object);
+      if (event.data.object.metadata?.flow === "resale") {
+        await resaleService.handleResalePaymentSucceeded(event.data.object);
+      } else {
+        await paymentService.handlePaymentSucceeded(event.data.object);
+      }
     } else if (event.type === "payment_intent.payment_failed") {
-      await paymentService.handlePaymentFailed(event.data.object);
+      if (event.data.object.metadata?.flow === "resale") {
+        await resaleService.handleResalePaymentFailed(event.data.object);
+      } else {
+        await paymentService.handlePaymentFailed(event.data.object);
+      }
     }
     res.json({ received: true });
   } catch (err) {
@@ -42,4 +54,7 @@ const stripeWebhook = async (req, res) => {
   }
 };
 
-module.exports = { createPaymentIntent, stripeWebhook };
+module.exports = {
+  createPaymentIntent,
+  stripeWebhook,
+};

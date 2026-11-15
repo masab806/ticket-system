@@ -22,6 +22,10 @@ const TicketSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    chainTokenId: {
+      type: String,
+      trim: true,
+    },
     mintTxHash: {
       type: String,
       required: true,

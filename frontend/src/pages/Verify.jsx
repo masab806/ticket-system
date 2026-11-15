@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { jsPDF } from 'jspdf'
 import {
   ShieldCheck,
   ScanLine,
@@ -9,6 +11,7 @@ import {
   Link2,
   Fingerprint,
   Blocks,
+  Download,
 } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -16,32 +19,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-
-const known = {
-  'AURORA-4821-9F2B-7D4A': {
-    status: 'valid',
-    event: 'Aurora Nights — World Tour',
-    tier: 'VIP Front Stage',
-    seat: 'Sec A · Row 2 · Seat 14',
-    owner: '0x9f2b…7d4a',
-    txHash: '0x7a3f…c21e',
-  },
-  'SOLST-0042-9F2B-7D4A': {
-    status: 'used',
-    event: 'Solstice Music Festival',
-    tier: 'Weekend Pass',
-    seat: 'GA · Weekend',
-    owner: '0x9f2b…7d4a',
-    txHash: '0x1def…88ac',
-    usedAt: 'Jul 10, 2026 · 14:32',
-  },
-}
+import api from '@/api/api'
+import { useAuth } from '@/context/AuthContext'
 
 const samples = [
-  { label: 'Valid ticket', token: 'AURORA-4821-9F2B-7D4A' },
-  { label: 'Already used', token: 'SOLST-0042-9F2B-7D4A' },
-  { label: 'Counterfeit', token: 'FAKE-0000-0000-0000' },
+  { label: 'Token ID 1', token: 'TCK#-1' },
+  { label: 'Invalid token ID', token: '0' },
 ]
+
+const verificationEndpoint = 'https://unshapen-dandiacally-alessandro.ngrok-free.dev/api/events/tickets/verify'
 
 const steps = [
   { icon: Fingerprint, label: 'Reading secure token' },
@@ -50,19 +36,66 @@ const steps = [
 ]
 
 export default function VerifyPage() {
-  const [token, setToken] = useState('')
+  const { role } = useAuth()
+
+  if (role !== 'organizer' && role !== 'admin') {
+    return <UnauthorizedAccess />
+  }
+
+  return <VerifyContent />
+}
+
+function UnauthorizedAccess() {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader />
+      <main className="flex flex-1 items-center justify-center px-4 py-16">
+        <div className="text-center">
+          <h1 className="text-3xl font-semibold tracking-tight">Unauthorized Access</h1>
+          <p className="mt-2 text-muted-foreground">
+            Only organizers and admins can access ticket verification.
+          </p>
+        </div>
+      </main>
+      <SiteFooter />
+    </div>
+  )
+}
+
+function VerifyContent() {
+  const [tokenId, setTokenId] = useState('')
   const [state, setState] = useState('idle')
   const [result, setResult] = useState(null)
+  const [searchParams] = useSearchParams()
+  const scannedToken = searchParams.get('token')
+  const handledScannedToken = useRef(null)
 
-  const verify = (value) => {
-    setToken(value)
+  const verify = useCallback(async (value, { download = false } = {}) => {
+    const normalizedTokenId = value.trim()
+    setTokenId(value)
     setState('checking')
     setResult(null)
-    setTimeout(() => {
-      setResult(known[value] ?? { status: 'invalid' })
+    try {
+      const { data } = await api.post(verificationEndpoint, {
+        tokenId: normalizedTokenId,
+      })
+      setResult(data)
+      if (download && data.valid) downloadTicketPdf(data)
+    } catch (error) {
+      setResult({
+        status: 'invalid',
+        reason: error.response?.data?.message || 'Could not verify this ticket.',
+      })
+    } finally {
       setState('done')
-    }, 1600)
-  }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!scannedToken || handledScannedToken.current === scannedToken) return
+    handledScannedToken.current = scannedToken
+    void verify(scannedToken, { download: true })
+  }, [scannedToken, verify])
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -78,8 +111,8 @@ export default function VerifyPage() {
               Verify a ticket
             </h1>
             <p className="mt-2 text-pretty text-muted-foreground">
-              Scan or paste a ticket token to confirm its authenticity directly
-              against the blockchain.
+              Enter the ticket ID shown on the ticket (for example, TCK#-1) to
+              confirm its authenticity against the blockchain.
             </p>
           </div>
         </section>
@@ -90,17 +123,17 @@ export default function VerifyPage() {
               <div className="relative flex-1">
                 <ScanLine className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  placeholder="Paste ticket token, e.g. AURORA-4821-…"
+                  value={tokenId}
+                  onChange={(e) => setTokenId(e.target.value)}
+                  placeholder="Enter ticket ID, e.g. TCK#-1"
                   className="pl-9 font-mono text-sm"
                 />
               </div>
               <Button
                 size="lg"
                 className="h-10 gap-2"
-                onClick={() => verify(token)}
-                disabled={!token || state === 'checking'}
+                onClick={() => verify(tokenId)}
+                disabled={!tokenId.trim() || state === 'checking'}
               >
                 {state === 'checking' ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -194,21 +227,87 @@ function ResultCard({ result }) {
             <Badge variant={config.badge}>{result.status.toUpperCase()}</Badge>
           </div>
           <p className="text-sm text-muted-foreground">{config.sub}</p>
+          {result.reason && <p className="mt-1 text-sm text-muted-foreground">{result.reason}</p>}
         </div>
       </div>
 
       {result.status !== 'invalid' && (
-        <dl className="mt-5 space-y-2 border-t border-border/60 pt-4 text-sm">
-          <Row label="Event" value={result.event} />
-          <Row label="Tier" value={result.tier} />
-          <Row label="Seat" value={result.seat} />
-          <Row label="Current owner" value={result.owner} mono />
-          <Row label="Mint tx" value={result.txHash} mono />
-          {result.usedAt && <Row label="Scanned at" value={result.usedAt} />}
-        </dl>
+        <>
+          <dl className="mt-5 space-y-2 border-t border-border/60 pt-4 text-sm">
+            <Row label="Event" value={result.event} />
+            <Row label="Current owner" value={result.owner} mono />
+            <Row label="Mint tx" value={result.txHash} mono />
+            <Row label="Token ID" value={result.tokenId} mono />
+          </dl>
+          {result.valid && (
+            <Button className="mt-5 gap-2" variant="outline" onClick={() => downloadTicketPdf(result)}>
+              <Download className="size-4" />
+              Download verified ticket PDF
+            </Button>
+          )}
+        </>
       )}
     </div>
   )
+}
+
+function downloadTicketPdf(ticket) {
+  const pdf = new jsPDF()
+  const pageWidth = pdf.internal.pageSize.getWidth()
+  const contentWidth = pageWidth - 28
+  let y = 20
+
+  pdf.setFontSize(18)
+  pdf.text('Blockchain-Verified Ticket', 14, y)
+  y += 12
+  pdf.setFontSize(11)
+  pdf.setFont('helvetica', 'bold')
+  pdf.text('BLOCKCHAIN VERIFICATION: VERIFIED', 14, y)
+  pdf.setFont('helvetica', 'normal')
+  y += 10
+
+  const fields = [
+    ['Ticket ID', ticket.tokenId],
+    ['Event', ticket.event],
+    ['Event date', formatDate(ticket.eventDate)],
+    ['Event ends', ticket.eventEndDate ? formatDate(ticket.eventEndDate) : 'Not provided'],
+    ['Venue', ticket.venue],
+    ['Venue address', ticket.venueAddress],
+    ['City', ticket.city],
+    ['Ticket tier', ticket.tier],
+    ['Seat', ticket.seat],
+    ['Ticket status', ticket.status === 'used' ? 'Used' : 'Valid'],
+    ['Price paid', ticket.pricePaid == null ? 'Not provided' : `${ticket.pricePaid} ${ticket.currency}`.trim()],
+    ['Purchased at', formatDate(ticket.purchasedAt)],
+    ['Blockchain token ID', ticket.chainTokenId],
+    ['Current owner', ticket.owner],
+    ['Mint transaction', ticket.txHash],
+    ['Verified at', new Date().toLocaleString()],
+  ]
+
+  for (const [label, rawValue] of fields) {
+    const value = rawValue == null || rawValue === '' ? 'Not provided' : String(rawValue)
+    const lines = pdf.splitTextToSize(value, contentWidth)
+    const fieldHeight = Math.max(10, lines.length * 5 + 5)
+    if (y + fieldHeight > pdf.internal.pageSize.getHeight() - 14) {
+      pdf.addPage()
+      y = 20
+    }
+
+    pdf.setFont('helvetica', 'bold')
+    pdf.text(`${label}:`, 14, y)
+    pdf.setFont('helvetica', 'normal')
+    pdf.text(lines, 14, y + 5)
+    y += fieldHeight
+  }
+
+  pdf.save(`ticket-${String(ticket.tokenId || 'verified').replace(/[^a-zA-Z0-9_-]/g, '-')}.pdf`)
+}
+
+function formatDate(value) {
+  if (!value) return 'Not provided'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? 'Not provided' : date.toLocaleString()
 }
 
 function Row({ label, value, mono }) {

@@ -41,7 +41,7 @@ export function SiteFooter() {
               <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                 <Ticket className="size-5" />
               </span>
-              <span className="text-lg font-semibold tracking-tight">Tessera</span>
+              <span className="text-lg font-semibold tracking-tight">ChainTix</span>
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
               The blockchain ticket marketplace where every ticket is real,
@@ -71,7 +71,7 @@ export function SiteFooter() {
           ))}
         </div>
         <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-sm text-muted-foreground sm:flex-row">
-          <p>© 2026 Tessera Labs. All rights reserved.</p>
+          <p>© 2026 Chain Tix. All rights reserved.</p>
           <p className="font-mono text-xs">Contract: 0xT3ss…4A2c · Base</p>
         </div>
       </div>

@@ -1,13 +1,12 @@
-import { useMemo, useState } from 'react'
-import { Search, SlidersHorizontal } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Search, SlidersHorizontal, Loader2 } from 'lucide-react'
 
-// Adjust these relative paths based on your project structure
 import SiteHeader from '@/components/site-header'
 import SiteFooter from '@/components/site-footer'
 import EventCard from '@/components/event-card'
 import { Input } from '@/components/ui/input'
-import { events, categories } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
+import api from '@/api/api'
 
 const sorts = [
   { id: 'trending', label: 'Trending' },
@@ -19,21 +18,42 @@ export default function EventsPage() {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All')
   const [sort, setSort] = useState('trending')
+  
+  const [eventsList, setEventsList] = useState([])
+  const [categoryList, setCategoryList] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const filtered = useMemo(() => {
-    let list = events.filter((e) => {
-      const matchesQuery =
-        e.title.toLowerCase().includes(query.toLowerCase()) ||
-        e.city.toLowerCase().includes(query.toLowerCase()) ||
-        e.venue.toLowerCase().includes(query.toLowerCase())
-      const matchesCat = category === 'All' || e.category === category
-      return matchesQuery && matchesCat
-    })
-    if (sort === 'priceLow') list = [...list].sort((a, b) => a.priceFrom - b.priceFrom)
-    if (sort === 'priceHigh') list = [...list].sort((a, b) => b.priceFrom - a.priceFrom)
-    if (sort === 'trending')
-      list = [...list].sort((a, b) => Number(b.trending) - Number(a.trending) || b.soldPct - a.soldPct)
-    return list
+  // Fetch categories once on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data } = await api.get('/events/categories')
+        setCategoryList(data)
+      } catch (error) {
+        console.error('Error fetching categories:', error)
+      }
+    }
+    fetchCategories()
+  }, [])
+
+  // Fetch events when filters change
+  useEffect(() => {
+    const fetchEvents = async () => {
+      setLoading(true)
+      try {
+        const { data } = await api.get('/events', {
+          params: { query, category, sort },
+        })
+        setEventsList(data)
+      } catch (error) {
+        console.error('Error fetching events:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    const timer = setTimeout(fetchEvents, 300) // Debounce search query
+    return () => clearTimeout(timer)
   }, [query, category, sort])
 
   return (
@@ -77,7 +97,7 @@ export default function EventsPage() {
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              {['All', ...categories].map((cat) => (
+              {['All', ...categoryList].map((cat) => (
                 <button
                   key={cat}
                   type="button"
@@ -86,7 +106,7 @@ export default function EventsPage() {
                     'rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors',
                     category === cat
                       ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground',
+                      : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground'
                   )}
                 >
                   {cat}
@@ -98,12 +118,17 @@ export default function EventsPage() {
 
         <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
           <p className="mb-6 text-sm text-muted-foreground">
-            {filtered.length} {filtered.length === 1 ? 'event' : 'events'}
+            {eventsList.length} {eventsList.length === 1 ? 'event' : 'events'}
           </p>
-          {filtered.length > 0 ? (
+
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="size-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : eventsList.length > 0 ? (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((event) => (
-                <EventCard key={event.id} event={event} />
+              {eventsList.map((event) => (
+                <EventCard key={event.id || event._id} event={event} />
               ))}
             </div>
           ) : (
