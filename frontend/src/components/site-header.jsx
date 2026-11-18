@@ -10,6 +10,7 @@ const nav = [
   { href: '/resale', label: 'Resale' },
   { href: '/tickets', label: 'My Tickets' },
   { href: '/history', label: 'Activity' },
+  {href: '/verify', label: 'Verify'}
 ]
 
 export function SiteHeader() {
@@ -63,14 +64,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          {(role === 'organizer' || role === 'admin') && (
-            <Link to="/verify" className="hidden sm:block">
-              <Button variant="ghost" size="sm" className="gap-1.5">
-                <ShieldCheck className="size-4 text-success" />
-                Verify
-              </Button>
-            </Link>
-          )}
+          
           {/* <Button size="sm" className="gap-1.5">
             <Wallet className="size-4" />
             <span className="hidden sm:inline">Connect Wallet</span>

@@ -311,7 +311,7 @@ export default function OrganizerPage() {
                 <input
                   type="number"
                   className="w-full rounded-lg border p-2"
-                  placeholder="Ticket Price ($)"
+                  placeholder="Ticket Price (PKR)"
                   value={eventForm.ticketPrice}
                   onChange={(e) =>
                     setEventForm({ ...eventForm, ticketPrice: e.target.value })
@@ -551,7 +551,7 @@ export function EventRowActions({ event, onRefresh }) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-medium">Ticket Price ($)</label>
+                  <label className="text-xs font-medium">Ticket Price (PKR)</label>
                   <input
                     type="number"
                     className="w-full rounded-lg border p-2 text-sm mt-1"

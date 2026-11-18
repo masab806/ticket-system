@@ -4,10 +4,9 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-
 contract EventTickets is ERC721, Ownable {
     uint256 private nextTokenId = 1;
-    mapping(uint256 => bytes32) private ticketMintTxHash;
+    mapping(uint256 => bytes32) private ticketMintTxHash; 
     mapping(bytes32 => bool) private registeredMintTransactions;
 
     constructor() ERC721("EventTicket", "ETKT") Ownable(msg.sender) {}
@@ -48,6 +47,4 @@ contract EventTickets is ERC721, Ownable {
     function getTotalTickets() external view returns (uint256) {
         return nextTokenId - 1;
     }
-
-    
 }

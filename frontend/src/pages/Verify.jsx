@@ -27,7 +27,7 @@ const samples = [
   { label: 'Invalid token ID', token: '0' },
 ]
 
-const verificationEndpoint = 'https://unshapen-dandiacally-alessandro.ngrok-free.dev/api/events/tickets/verify'
+const verificationEndpoint = 'https://untoasted-sled-headrest.ngrok-free.dev/api/events/tickets/verify'
 
 const steps = [
   { icon: Fingerprint, label: 'Reading secure token' },
